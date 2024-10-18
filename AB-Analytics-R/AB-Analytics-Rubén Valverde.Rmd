@@ -171,7 +171,9 @@ El gráfico muestra la evolución de la inflación promedio anual por región de
     -   Aunque algunos países han logrado mantener una inflación baja y estable, otros continúan enfrentando episodios de alta inflación.
 
 ## Análisis de la Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región {#analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
+
 ### Adaptación al Cambio de Formato de 2012 {#adaptacion-formato-cpi}
+
 ```{r CPI1, warning=FALSE}
 # Al ejecutar el gráfico previamente se podia observar que el formato del CPI cambió en 2012, siendo 100 la puntuación máxima en lugar de 10.
 df_melted %>%
@@ -215,6 +217,7 @@ A <- ggplot(df_avg_score, aes(x = year, y = score, color = region, group = regio
 knitr::include_graphics("CPI_Region_Año.png")
 
 ```
+
 ### Análisis del Gráfico de Evolución de la Puntuación de la Percepción de Corrupción (CPI) Promedio Anual por Región {#analisis-del-grafico-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
 
 El gráfico muestra la evolución de la puntuación de corrupción promedio anual por región desde 1995 hasta 2023. A continuación, se presentan algunos puntos clave observados en el gráfico:
@@ -239,7 +242,9 @@ El gráfico muestra la evolución de la puntuación de corrupción promedio anua
     -   Aunque algunos países han logrado mejoras significativas, otros continúan enfrentando altos niveles de corrupción.
 
 ## Análisis de la Correlación entre la Puntuación de Corrupción y la Inflación {#analisis-de-la-correlacion-entre-la-puntuacion-de-corrupcion-y-la-inflacion}
+
 ### Calculo de valores medianos de inflación y medios de puntuación de corrupción {#calculo-inflacion-cpi}
+
 ```{r Correlación Inflación CPI1}
 # Calculo los valores medios de inflación y puntuación de corrupción por país
 df_avg <- df_melted %>%
