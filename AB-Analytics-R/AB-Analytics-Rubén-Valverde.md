@@ -1,31 +1,46 @@
 ---
-title: "AB ADVANCED PROGRAMMING FOR DATA ANALYSIS"
+title: "ANÁLISIS DE LA CORRELACIÓN ENTRE LA INFLACIÓN Y LA PERCEPCIÓN DE CORRUPCIÓN"
 author: "Rubén Valverde Romero"
-date: "2024-10-18"
+date: "2024-10-19"
 output:
   html_document:
     keep_md: true
 ---
 
+<head><link rel="stylesheet" href="styles.css"></head>
+
+<body>
+
+:::: {#indice .collapsible}
+<h2>Índice</h2>
+
+<button class="boton-expansion">↓</button>
+
+::: {style="padding-top: 10px;"}
 -   [Introducción](#introduccion)
+
 -   [Limpieza de Datos](#limpieza-de-datos)
+
     -   [Carga y Visualización del DataFrame](#carga-y-visualizacion-del-dataframe)
     -   [Reemplazo de Valores "no data" por NA](#reemplazo-de-valores-no-data-por-na)
     -   [Conversión de Columnas a Numérico](#conversion-de-columnas-a-numerico)
     -   [Conteo de valores NA](#conteo-de-valores-na)
-    
+
 -   [Análisis de la Evolución de la Inflación Promedio Anual por Región](#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region)
+
     -   [Formateo del DataFrame](#formateo-del-dataFrame)
     -   [Visualización de la Inflación](#visualizacion-de-la-inflacion)
     -   [Análisis del Gráfico de Evolución de la Inflación Promedio Anual por Región](#analisis-del-grafico-de-evolucion-de-la-inflacion-promedio-anual-por-region)
-    
+
 -   [Análisis de la Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región](#analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region)
+
     -   [Adaptación al Cambio de Formato de 2012](#adaptacion-formato-cpi)
     -   [Calculo del CPI anual por región](#calculo-del-cpi-anual-por-region)
     -   [Visualización del CPI](#visualizacion-del-cpi)
     -   [Análisis del Gráfico de la Evolución de la Puntuación de la Percepción de Corrupción (CPI) Promedio Anual por Región](#analisis-del-grafico-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region)
 
 -   [Análisis de la Correlación entre la Puntuación de Corrupción y la Inflación](#analisis-de-la-correlacion-entre-la-puntuacion-de-corrupcion-y-la-inflacion)
+
     -   [Calculo de valores medianos de inflación y medios de puntuación de corrupción](#calculo-inflacion-cpi)
     -   [Visualización de la correlación](#visualizacion-correlacion)
     -   [Análisis del gráfico de la Correlación entre el CPI y la Inflación](#analisis-del-grafico-correlacion-cpi-inflacion)
@@ -33,6 +48,29 @@ output:
         -   [Resultados](#resultados)
         -   [Interpretación](#interpretacion)
 
+    </div>
+
+    </div>
+
+    <script>
+    const boton = document.querySelector('.boton-expansion');
+    const indice = document.getElementById('indice');
+
+    boton.addEventListener('click', () => {
+      if (indice.classList.contains('expanded')) {
+        indice.classList.remove('expanded');
+        indice.style.maxHeight = '55px';
+        boton.textContent = '↓';
+      } else {
+        indice.classList.add('expanded');
+        indice.style.maxHeight = '100vh';
+        boton.textContent = '↑';
+
+      }
+    });
+      </script>
+
+    </body>
 
 ## Introducción {#introduccion}
 
@@ -107,7 +145,9 @@ print(paste("Hay un total de", sum(is.na(df)), "valores nulos"))
 ```
 
 ## Análisis de la Evolución de la Inflación Promedio Anual por Región {#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region}
+
 ### Formateo del DataFrame {#formateo-del-dataFrame}
+
 
 ``` r
 # Transformar el DataFrame de formato ancho a formato largo para poder analizar los datos de inflación, puntuación y rango a lo largo del tiempo posteriormente
@@ -157,7 +197,9 @@ summary(df_melted)
 ##  Max.   :65374.10   Max.   :92.00   Max.   :182.00  
 ##  NA's   :128        NA's   :1012    NA's   :1012
 ```
+
 ### Visualización de la Inflación {#visualizacion-de-la-inflacion}
+
 
 ``` r
 # Crear un DataFrame con la inflación promedio anual por región
@@ -251,7 +293,9 @@ df_melted %>%
 df_melted <- df_melted %>%
     mutate(score = ifelse(year >= 1995 & year <= 2011, score * 10, score))
 ```
+
 ### Calculo del CPI anual por región {#calculo-del-cpi-anual-por-region}
+
 
 ``` r
 # Calcular el CPI promedio anual por región
@@ -263,7 +307,9 @@ df_avg_score <- df_melted %>%
 # Eliminar filas con valores nulos en la columna 'score', provocaban warnings
 df_avg_score <- df_avg_score %>% drop_na(score)   
 ```
+
 ### Visualización del CPI {#visualizacion-del-cpi}
+
 
 ``` r
 # Crear el lineplot
@@ -319,7 +365,9 @@ df_avg <- df_melted %>%
 # Nota1: ordeno por región y país para que el hue siga el mismo orden que el resto
 # Nota2: utilizo la mediana para la inflación para evitar que valores extremos como los de Bulgaria y Venezuela ya mencionados.
 ```
+
 ### Visualización de la correlación {#visualizacion-correlacion}
+
 
 ``` r
 # Crear el scatter plot para visualizar la correlación entre inflación y puntuación de corrupción
@@ -356,6 +404,7 @@ En resumen, el gráfico sugiere que existe una correlación negativa entre la in
 
 ### Coeficiente de Correlación de Spearman's Rank {#spearman}
 
+
 ``` r
 # Calcular el coeficiente de correlación de Spearman
 corr_test <- cor.test(df_melted$inflation, df_melted$score,
@@ -386,7 +435,9 @@ if (corr_test$p.value < alpha) {
 ```
 ## p-valor: 6.571181e-165 , Se rechaza la hipótesis nula
 ```
+
 #### Resultados: {#resultados}
+
 El Coeficiente de Correlación de Spearman's Rank calculado entre las columnas `inflation` y `score` ha arrojado los siguientes resultados:
 
 -   **Coeficiente de Correlación de Spearman's Rank**: -0.4098749
@@ -400,3 +451,5 @@ El Coeficiente de Correlación de Spearman's Rank calculado entre las columnas `
     -   El **p-valor** obtenido es extremadamente bajo (6.571181e-165), lo que es mucho menor que el nivel de significancia comúnmente utilizado (**α** = 0.05). Esto significa que podemos rechazar la hipótesis nula de que no existe correlación entre la inflación y la puntuación de corrupción. En otras palabras, la correlación observada es estadísticamente significativa.
 
 En resumen, los resultados del Coeficiente de Correlación de Spearman's Rank sugieren que existe una correlación negativa significativa entre la inflación y la puntuación de corrupción en los datos analizados.
+:::
+::::

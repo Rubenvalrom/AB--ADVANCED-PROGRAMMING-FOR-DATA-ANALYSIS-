@@ -1,0 +1,58 @@
+  #indice {
+    position: fixed;
+    top: 10px;
+    left: 20px;
+    padding: 10px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding-right: 30px;
+    border-radius: 10px;
+    max-width: 20%;
+    overflow: hidden;
+    font-family: Consolas;
+  }
+#indice h2 {
+    font-weight: bold;
+  }
+  #indice.collapsible {
+    max-height: 55px;
+    overflow: hidden;
+    
+    transition: max-height 0.3s ease-out;
+  }
+
+  #indice.collapsible.expanded {
+    transition: max-height 0.3s ease-in;
+  }
+
+  #indice h2 {
+    margin-top: 0;
+  }
+
+.boton-expansion {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background-color: #878787;
+    color: white;
+    padding-top: 0;
+    padding-bottom: 5px;
+    text-align: center;
+    padding-left:3px;
+    padding-right:2px; /* No entiendo porque cambia de posición en el eje x cuando se apgranda la pantalla,antes no lo hacia >:| */
+    border: 2px black;
+    border-radius: 100%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-family: Helvetica;
+}
+
+.boton-expansion:hover {
+    background-color: #5a6268;
+}
+
+.boton-expansion:active {
+    background-color: #343a40;
+}

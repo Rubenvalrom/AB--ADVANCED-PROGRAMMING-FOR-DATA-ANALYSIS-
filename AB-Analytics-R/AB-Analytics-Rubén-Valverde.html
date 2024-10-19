@@ -11,9 +11,9 @@
 
 <meta name="author" content="Rubén Valverde Romero" />
 
-<meta name="date" content="2024-10-18" />
+<meta name="date" content="2024-10-19" />
 
-<title>AB ADVANCED PROGRAMMING FOR DATA ANALYSIS</title>
+<title>ANÁLISIS DE LA CORRELACIÓN ENTRE LA INFLACIÓN Y LA PERCEPCIÓN DE CORRUPCIÓN</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -350,17 +350,29 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">AB ADVANCED PROGRAMMING FOR DATA
-ANALYSIS</h1>
+<h1 class="title toc-ignore">ANÁLISIS DE LA CORRELACIÓN ENTRE LA
+INFLACIÓN Y LA PERCEPCIÓN DE CORRUPCIÓN</h1>
 <h4 class="author">Rubén Valverde Romero</h4>
-<h4 class="date">2024-10-18</h4>
+<h4 class="date">2024-10-19</h4>
 
 </div>
 
 
+<head>
+<style type="text/css"> #indice {position: fixed;top: 10px;left: 20px;padding: 10px;background-color: #f0f0f0;border: 1px solid #ccc;padding-right: 30px;border-radius: 10px;max-width: 20%;overflow: hidden;font-family: Consolas;}#indice h2 {font-weight: bold;}#indice.collapsible {max-height: 55px;overflow: hidden;transition: max-height 0.3s ease-out;}#indice.collapsible.expanded {transition: max-height 0.3s ease-in;}#indice h2 {margin-top: 0;}.boton-expansion {position: absolute;top: 15px;right: 15px;background-color: #878787;color: white;padding-top: 0;padding-bottom: 5px;text-align: center;padding-left:3px;padding-right:2px; border: 2px black;border-radius: 100%;width: 24px;height: 24px;cursor: pointer;transition: background-color 0.3s ease;font-family: Helvetica;}.boton-expansion:hover {background-color: #5a6268;}.boton-expansion:active {background-color: #343a40;}</style>
+</head>
+<body>
+<div id="indice" class="collapsible">
+<h2>
+Índice
+</h2>
+<button class="boton-expansion">
+↓
+</button>
+<div style="padding-top: 10px;">
 <ul>
-<li><a href="#introduccion">Introducción</a></li>
-<li><a href="#limpieza-de-datos">Limpieza de Datos</a>
+<li><p><a href="#introduccion">Introducción</a></p></li>
+<li><p><a href="#limpieza-de-datos">Limpieza de Datos</a></p>
 <ul>
 <li><a href="#carga-y-visualizacion-del-dataframe">Carga y Visualización
 del DataFrame</a></li>
@@ -370,8 +382,8 @@ del DataFrame</a></li>
 a Numérico</a></li>
 <li><a href="#conteo-de-valores-na">Conteo de valores NA</a></li>
 </ul></li>
-<li><a href="#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region">Análisis
-de la Evolución de la Inflación Promedio Anual por Región</a>
+<li><p><a href="#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region">Análisis
+de la Evolución de la Inflación Promedio Anual por Región</a></p>
 <ul>
 <li><a href="#formateo-del-dataFrame">Formateo del DataFrame</a></li>
 <li><a href="#visualizacion-de-la-inflacion">Visualización de la
@@ -380,9 +392,9 @@ Inflación</a></li>
 del Gráfico de Evolución de la Inflación Promedio Anual por
 Región</a></li>
 </ul></li>
-<li><a href="#analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region">Análisis
+<li><p><a href="#analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region">Análisis
 de la Evolución del Indice de Percepción de Corrupción Promedio Anual
-(CPI) por Región</a>
+(CPI) por Región</a></p>
 <ul>
 <li><a href="#adaptacion-formato-cpi">Adaptación al Cambio de Formato de
 2012</a></li>
@@ -393,8 +405,9 @@ por región</a></li>
 del Gráfico de la Evolución de la Puntuación de la Percepción de
 Corrupción (CPI) Promedio Anual por Región</a></li>
 </ul></li>
-<li><a href="#analisis-de-la-correlacion-entre-la-puntuacion-de-corrupcion-y-la-inflacion">Análisis
-de la Correlación entre la Puntuación de Corrupción y la Inflación</a>
+<li><p><a href="#analisis-de-la-correlacion-entre-la-puntuacion-de-corrupcion-y-la-inflacion">Análisis
+de la Correlación entre la Puntuación de Corrupción y la
+Inflación</a></p>
 <ul>
 <li><a href="#calculo-inflacion-cpi">Calculo de valores medianos de
 inflación y medios de puntuación de corrupción</a></li>
@@ -408,7 +421,27 @@ Rank</a>
 <li><a href="#resultados">Resultados</a></li>
 <li><a href="#interpretacion">Interpretación</a></li>
 </ul></li>
-</ul></li>
+</ul>
+</div>
+</div>
+<script>
+const boton = document.querySelector('.boton-expansion');
+const indice = document.getElementById('indice');
+
+boton.addEventListener('click', () => {
+  if (indice.classList.contains('expanded')) {
+    indice.classList.remove('expanded');
+    indice.style.maxHeight = '55px';
+    boton.textContent = '↓';
+  } else {
+    indice.classList.add('expanded');
+    indice.style.maxHeight = '100vh';
+    boton.textContent = '↑';
+
+  }
+});
+  </script>
+</body></li>
 </ul>
 <div id="introduccion" class="section level2">
 <h2>Introducción</h2>
@@ -834,6 +867,8 @@ correlación observada es estadísticamente significativa.</li>
 Spearman’s Rank sugieren que existe una correlación negativa
 significativa entre la inflación y la puntuación de corrupción en los
 datos analizados.</p>
+</div>
+</div>
 </div>
 </div>
 </div>
