@@ -10,11 +10,11 @@ output:
 <head><link rel="stylesheet" href="styles.css"></head>
 
 <body>
-
+  <button class="boton-expansion">↓</button>
 :::: {#indice .collapsible}
-<h2>Índice</h2>
+  <h2>Índice</h2>
 
-<button class="boton-expansion">↓</button>
+ 
 
 ::: {style="padding-top: 5px;font-size:12px;"}
 -   [Introducción](#introduccion)
@@ -25,7 +25,7 @@ output:
     -   [Reemplazo de Valores "no data" por NA](#reemplazo-de-valores-no-data-por-na)
     -   [Conversión de Columnas a Numérico](#conversion-de-columnas-a-numerico)
     -   [Conteo de valores NA](#conteo-de-valores-na)
-
+    
 -   [Análisis de la Evolución de la Inflación Promedio Anual por Región](#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region)
 
     -   [Formateo del DataFrame](#formateo-del-dataFrame)
@@ -53,21 +53,34 @@ output:
     </div>
 
     <script>
-    const boton = document.querySelector('.boton-expansion');
-    const indice = document.getElementById('indice');
-
-    boton.addEventListener('click', () => {
-      if (indice.classList.contains('expanded')) {
-        indice.classList.remove('expanded');
-        indice.style.maxHeight = '55px';
-        boton.textContent = '↓';
-      } else {
-        indice.classList.add('expanded');
-        indice.style.maxHeight = '100vh';
-        boton.textContent = '↑';
-
-      }
-    });
+      const boton = document.querySelector('.boton-expansion');
+      const indice = document.getElementById('indice');
+      
+      const newLeftValue = Math.floor(indice.offsetWidth * 0.9);
+      boton.style.left = `${newLeftValue}px`;
+      
+      
+      boton.addEventListener('click', () => {
+        if (indice.classList.contains('expanded')) {
+          indice.classList.remove('expanded');
+          indice.style.maxHeight = '55px';
+          boton.classList.remove('expanded');
+          boton.textContent = '↓';
+      
+          // Calculate the new left value
+          const newLeftValue = Math.floor(indice.offsetWidth * 0.9);
+          boton.style.left = `${newLeftValue}px`;
+        } else {
+          indice.classList.add('expanded');
+          indice.style.maxHeight = '100vh';
+          boton.classList.add('expanded');
+          boton.textContent = '↑';
+      
+          // Reset the left value
+          const newLeftValue = Math.floor(indice.offsetWidth * 0.9);
+          boton.style.left = `${newLeftValue}px`;
+        }
+      });
       </script>
 
     </body>
