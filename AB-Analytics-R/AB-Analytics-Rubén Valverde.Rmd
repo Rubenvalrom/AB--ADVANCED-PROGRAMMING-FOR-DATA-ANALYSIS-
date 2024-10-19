@@ -16,7 +16,7 @@ output:
 
 <button class="boton-expansion">↓</button>
 
-::: {style="padding-top: 10px;font-size:0.9em;"}
+::: {style="padding-top: 5px;font-size:12px;"}
 -   [Introducción](#introduccion)
 
 -   [Limpieza de Datos](#limpieza-de-datos)
