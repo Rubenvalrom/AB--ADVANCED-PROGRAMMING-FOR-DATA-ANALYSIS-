@@ -28,3 +28,7 @@ Los datos del indice de percepción de corrupcion (CPI) han sido extraidos de [t
 - R
   - Paquetes de R: tidyr, ggplot2 y dplyr
   - Entornos de desarrollo: R Studio y Visual Studio Code
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2c819c700c09cb9904d1c6c1ad66b903c3b26df7
