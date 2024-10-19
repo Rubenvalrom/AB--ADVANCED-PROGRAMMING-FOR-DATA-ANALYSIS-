@@ -18,8 +18,8 @@ El proyecto está organizado en las siguientes secciones:
 4. **Resultados**: Interpretación de los resultados obtenidos.
 
 ## Datos
-Los datos de inflación han sido extraidos del ![Fondo Monetario Internacional](https://www.imf.org/external/datamapper/NGDP_RPCH@WEO/OEMDC/ADVEC/WEOWORLD "Fondo Monetario Internacional")
-Los datos del indice de percepción de corrupcion (CPI) han sido extraidos de ![transparency.org](https://www.transparency.org/en/ "transparency.org")
+Los datos de inflación han sido extraidos del [Fondo Monetario Internacional](https://www.imf.org/external/datamapper/NGDP_RPCH@WEO/OEMDC/ADVEC/WEOWORLD "Fondo Monetario Internacional")   
+Los datos del indice de percepción de corrupcion (CPI) han sido extraidos de [transparency.org](https://www.transparency.org/en/ "transparency.org")   
 
 ## Herramientas
 - Python
