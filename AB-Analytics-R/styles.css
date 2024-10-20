@@ -1,18 +1,24 @@
   #indice {
     position: fixed;
-    top: 10px;
+    top: 5px;
     left: 20px;
     padding: 10px;
     background-color: #f0f0f0;
     border: 1px solid #ccc;
     padding-right: 30px;
     border-radius: 10px;
-    max-width: 20%;
     overflow: hidden;
     font-family: Consolas;
+    max-height: 92vh;
   }
   #indice h2 {
     font-weight: bold;
+  }
+  #indice ul {
+    padding-left: 10px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: 11px;
   }
   #indice.collapsible {
     max-height: 55px;
@@ -22,12 +28,19 @@
   #indice.collapsible.expanded {
     transition: max-height 0.3s ease-in;
   }
+  #indice.collapsible:not(.expanded) {
+    height: 0;
+    width: 0;  
+    overflow: hidden;
+    opacity: 0;
+  }
+
   #indice h2 {
     margin-top: 0;
   }
   .boton-expansion {
     position: fixed;
-    top: 25px;
+    top: 20px;
     background-color: #878787;
     color: white;
     padding-top: 0;
@@ -52,57 +65,40 @@
     background-color: #343a40;
   }
   /* Media Queries */
-  @media (min-width: 992px) {
+  @media (min-width: 1450px) {
     #indice {
-      max-width: 20%;
+      max-width: 18%;
     }
   }
 
-  @media (max-width: 992px) {
+  @media (max-width: 1449px) {
     #indice {
-      max-width: 40%;
-    }
-      #indice.collapsible:not(.expanded) {
-      height: 0;
-      width: 0; 
-      overflow: hidden;
-      opacity: 0;
+      max-width: 33%;
     }
     .boton-expansion {
-      transform: scale(1.2);
+      transform: scale(1.4);
+    }
+
+  }
+  @media (max-width: 992px) {
+    #indice {
+      max-width: 50%;
+    }
+
+    .boton-expansion {
+      transform: scale(1.4);
     }
 
   }
 
   @media (max-width: 768px) {
     #indice {
-      max-width: 50%;
+      max-width: 90%;
     }
-    #indice.collapsible:not(.expanded) {
-      height: 0;
-      width: 0;  
-      overflow: hidden;
-      opacity: 0;
-    }
-    .boton-expansion {
-      transform: scale(1.5);
-    }
-  }
-  @media (max-width: 576px) {
-    #indice {
-      max-width: 95%;
-    }
-    #indice.collapsible:not(.expanded) {
-      height: 0;
-      width: 0;  
-      overflow: hidden;
-      opacity: 0;
-    }
+
     .boton-expansion {
       transform: scale(1.7);
     }
-
-
   }
 
 

@@ -16,7 +16,7 @@ output:
 
  
 
-::: {style="padding-top: 5px;font-size:12px;"}
+::: {style="padding-top: 0;"}
 -   [Introducción](#introduccion)
 
 -   [Limpieza de Datos](#limpieza-de-datos)
@@ -85,6 +85,7 @@ output:
 
     </body>
 
+
 ## Introducción {#introduccion}
 
 El objetivo de este informe es analizar la relación entre la inflación y la corrupción.
@@ -96,7 +97,7 @@ El objetivo de este informe es analizar la relación entre la inflación y la co
 ### Carga y Visualización del DataFrame {#carga-y-visualizacion-del-dataframe}
 
 
-``` r
+```r
 df <- read.csv("inflation_corruption_1995_2023_Ruben_Valverde.csv")
 head(df[0:6])
 ```
@@ -111,14 +112,14 @@ head(df[0:6])
 ## 6     Armenia ARM    ECA              2         47        62
 ```
 
-``` r
+```r
 # Nota: El resto de columnas son repeticiones de las columnas 3, 4 y 5 por lo que mostrarlas no aportan más información y empeoran la estética
 ```
 
 ### Reemplazo de Valores "no data" por NA {#reemplazo-de-valores-no-data-por-na}
 
 
-``` r
+```r
 # Contar valores "no data" en cada columna
 inflation <- df[, grepl("inflation", names(df))]
 no_data_count <- colSums(inflation == "no data", na.rm = TRUE)
@@ -129,7 +130,7 @@ print(paste("Hay un total de", sum(no_data_count), "valores 'no data'"))
 ## [1] "Hay un total de 128 valores 'no data'"
 ```
 
-``` r
+```r
 # Reemplazar los valores "no data" por NA en todo el DataFrame porque da problemas al conteo
 df[df == "no data"] <- NA
 ```
@@ -137,7 +138,7 @@ df[df == "no data"] <- NA
 ### Conversión de Columnas a Numérico {#conversion-de-columnas-a-numerico}
 
 
-``` r
+```r
 # Convertir las columnas de inflación de 1995 a 2023 a valores numéricos
 for (year in 1995:2023) {
   column <- paste("inflation", year, sep = "_")
@@ -148,7 +149,7 @@ for (year in 1995:2023) {
 ### Conteo de valores NA {#conteo-de-valores-na}
 
 
-``` r
+```r
 # Contar y mostrar el número de valores nulos por columna
 print(paste("Hay un total de", sum(is.na(df)), "valores nulos"))
 ```
@@ -162,7 +163,7 @@ print(paste("Hay un total de", sum(is.na(df)), "valores nulos"))
 ### Formateo del DataFrame {#formateo-del-dataFrame}
 
 
-``` r
+```r
 # Transformar el DataFrame de formato ancho a formato largo para poder analizar los datos de inflación, puntuación y rango a lo largo del tiempo posteriormente
 df_melted <- df %>%
   pivot_longer(cols = starts_with("inflation_") | starts_with("score_") | starts_with("rank_"),
@@ -188,7 +189,7 @@ head(df_melted)
 ## 6 Afghanistan AFG   AP     2018        0.6    16   172
 ```
 
-``` r
+```r
 summary(df_melted)
 ```
 
@@ -214,7 +215,7 @@ summary(df_melted)
 ### Visualización de la Inflación {#visualizacion-de-la-inflacion}
 
 
-``` r
+```r
 # Crear un DataFrame con la inflación promedio anual por región
 df_avg_inflation <- df_melted %>%
     group_by(region, year) %>%
@@ -282,7 +283,7 @@ El gráfico muestra la evolución de la inflación promedio anual por región de
 ### Adaptación al Cambio de Formato de 2012 {#adaptacion-formato-cpi}
 
 
-``` r
+```r
 # Al ejecutar el gráfico previamente se podia observar que el formato del CPI cambió en 2012, siendo 100 la puntuación máxima en lugar de 10.
 df_melted %>%
     filter(year %in% c(2010, 2011, 2012, 2013)) %>%
@@ -301,7 +302,7 @@ df_melted %>%
 ## 4 AME    2013  44.3
 ```
 
-``` r
+```r
 # Multiplico por 10 el CPI de los años 1995 hasta 2011 para que estén en la misma escala que los años posteriores
 df_melted <- df_melted %>%
     mutate(score = ifelse(year >= 1995 & year <= 2011, score * 10, score))
@@ -310,7 +311,7 @@ df_melted <- df_melted %>%
 ### Calculo del CPI anual por región {#calculo-del-cpi-anual-por-region}
 
 
-``` r
+```r
 # Calcular el CPI promedio anual por región
 df_avg_score <- df_melted %>%
     group_by(region, year) %>%
@@ -324,7 +325,7 @@ df_avg_score <- df_avg_score %>% drop_na(score)
 ### Visualización del CPI {#visualizacion-del-cpi}
 
 
-``` r
+```r
 # Crear el lineplot
 A <- ggplot(df_avg_score, aes(x = year, y = score, color = region, group = region)) +
     geom_line(size=1.5) +
@@ -365,7 +366,7 @@ El gráfico muestra la evolución de la puntuación de corrupción promedio anua
 ### Calculo de valores medianos de inflación y medios de puntuación de corrupción {#calculo-inflacion-cpi}
 
 
-``` r
+```r
 # Calculo los valores medios de inflación y puntuación de corrupción por país
 df_avg <- df_melted %>%
     group_by(country, region) %>% 
@@ -382,7 +383,7 @@ df_avg <- df_melted %>%
 ### Visualización de la correlación {#visualizacion-correlacion}
 
 
-``` r
+```r
 # Crear el scatter plot para visualizar la correlación entre inflación y puntuación de corrupción
 # Crear el scatter plot con una línea de regresión única para todas las regiones pero sin el scatter (Quiero una única linea de regresión)
 A <- ggplot(df_avg, aes(x = inflation, y = score, color = region)) +
@@ -418,7 +419,7 @@ En resumen, el gráfico sugiere que existe una correlación negativa entre la in
 ### Coeficiente de Correlación de Spearman's Rank {#spearman}
 
 
-``` r
+```r
 # Calcular el coeficiente de correlación de Spearman
 corr_test <- cor.test(df_melted$inflation, df_melted$score,
                       method = "spearman", use = "complete.obs",
@@ -437,7 +438,7 @@ cat("Coeficiente de Correlación de Spearman's Rank:", corr_test$estimate, "\n")
 ## Coeficiente de Correlación de Spearman's Rank: -0.4098749
 ```
 
-``` r
+```r
 if (corr_test$p.value < alpha) {
   cat("p-valor:", corr_test$p.value, ", Se rechaza la hipótesis nula\n")
 } else {
