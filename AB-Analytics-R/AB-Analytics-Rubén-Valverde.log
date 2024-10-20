@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2024.10.18)  18 OCT 2024 19:00
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (MiKTeX 24.4) (preloaded format=pdflatex 2024.10.18)  20 OCT 2024 20:02
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -385,7 +385,7 @@ File: bkm-pdftex.def 2023-12-10 v1.31 bookmark driver for pdfTeX and luaTeX (HO
 Package: xurl 2022/01/09 v 0.10 modify URL breaks
 )
 LaTeX Font Info:    Trying to load font information for T1+lmr on input line 11
-3.
+4.
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmr.fd
 File: t1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
@@ -398,37 +398,37 @@ File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 No file AB-Analytics-Rubén-Valverde.aux.
 \openout1 = `AB-Analytics-Rubén-Valverde.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 113.
-LaTeX Font Info:    ... okay on input line 113.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 113.
-LaTeX Font Info:    ... okay on input line 113.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 113.
-LaTeX Font Info:    ... okay on input line 113.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 113.
-LaTeX Font Info:    ... okay on input line 113.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 113.
-LaTeX Font Info:    ... okay on input line 113.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 113.
-LaTeX Font Info:    ... okay on input line 113.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 113.
-LaTeX Font Info:    ... okay on input line 113.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 113.
-LaTeX Font Info:    ... okay on input line 113.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 113.
-LaTeX Font Info:    ... okay on input line 113.
-LaTeX Info: Redefining \microtypecontext on input line 113.
-Package microtype Info: Applying patch `item' on input line 113.
-Package microtype Info: Applying patch `toc' on input line 113.
-Package microtype Info: Applying patch `eqnum' on input line 113.
-Package microtype Info: Applying patch `footnote' on input line 113.
-Package microtype Info: Applying patch `verbatim' on input line 113.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 114.
+LaTeX Font Info:    ... okay on input line 114.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 114.
+LaTeX Font Info:    ... okay on input line 114.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 114.
+LaTeX Font Info:    ... okay on input line 114.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 114.
+LaTeX Font Info:    ... okay on input line 114.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 114.
+LaTeX Font Info:    ... okay on input line 114.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 114.
+LaTeX Font Info:    ... okay on input line 114.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 114.
+LaTeX Font Info:    ... okay on input line 114.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 114.
+LaTeX Font Info:    ... okay on input line 114.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 114.
+LaTeX Font Info:    ... okay on input line 114.
+LaTeX Info: Redefining \microtypecontext on input line 114.
+Package microtype Info: Applying patch `item' on input line 114.
+Package microtype Info: Applying patch `toc' on input line 114.
+Package microtype Info: Applying patch `eqnum' on input line 114.
+Package microtype Info: Applying patch `footnote' on input line 114.
+Package microtype Info: Applying patch `verbatim' on input line 114.
 Package microtype Info: Generating PDF output.
 Package microtype Info: Character protrusion enabled (level 2).
 Package microtype Info: Using protrusion set `basicmath'.
 Package microtype Info: Automatic font expansion enabled (level 2),
 (microtype)             stretch: 20, shrink: 20, step: 1, non-selected.
 Package microtype Info: Using default expansion set `alltext-nott'.
-LaTeX Info: Redefining \showhyphens on input line 113.
+LaTeX Info: Redefining \showhyphens on input line 114.
 Package microtype Info: No adjustment of tracking.
 Package microtype Info: No adjustment of interword spacing.
 Package microtype Info: No adjustment of character kerning.
@@ -495,82 +495,105 @@ File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-Package hyperref Info: Link coloring OFF on input line 113.
+Package hyperref Info: Link coloring OFF on input line 114.
 LaTeX Font Info:    Trying to load font information for OT1+lmr on input line 1
-15.
+16.
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/lm\ot1lmr.fd
 File: ot1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OML+lmm on input line 1
-15.
+16.
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/lm\omllmm.fd
 File: omllmm.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMS+lmsy on input line 
-115.
+116.
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/lm\omslmsy.fd
 File: omslmsy.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Trying to load font information for OMX+lmex on input line 
-115.
+116.
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/lm\omxlmex.fd
 File: omxlmex.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <12> on input line 115.
+(Font)              <12> on input line 116.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <8> on input line 115.
+(Font)              <8> on input line 116.
 LaTeX Font Info:    External font `lmex10' loaded for size
-(Font)              <6> on input line 115.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 115
+(Font)              <6> on input line 116.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 116
 .
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 ) (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/microtype\mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 115
+LaTeX Font Info:    Trying to load font information for U+msb on input line 116
 .
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/microtype\mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
+No file AB-Analytics-Rubén-Valverde.toc.
+\tf@toc=\write4
+\openout4 = `AB-Analytics-Rubén-Valverde.toc'.
+
 LaTeX Font Info:    Trying to load font information for T1+lmtt on input line 1
-17.
+32.
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/lm\t1lmtt.fd
 File: t1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 LaTeX Font Info:    Font shape `T1/lmtt/bx/n' in size <10> not available
-(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 118.
+(Font)              Font shape `T1/lmtt/b/n' tried instead on input line 133.
 LaTeX Font Info:    Trying to load font information for TS1+lmtt on input line 
-154.
+162.
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/lm\ts1lmtt.fd
 File: ts1lmtt.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
-Underfull \vbox (badness 1331) detected at line 197
- []
-
-
 
 [1
 
 {C:/Users/rubi6/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}{C:/Users/rubi
 6/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ec.enc}{C:/Users/rubi6/Ap
 pData/Local/Programs/MiKTeX/fonts/enc/dvips/lm/lm-ts1.enc}]
-LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 2
-16.
+
+[2]
+<Inflacion_Anual_Region.png, id=31, 1204.5pt x 376.40625pt>
+File: Inflacion_Anual_Region.png Graphic file (type png)
+<use Inflacion_Anual_Region.png>
+Package pdftex.def Info: Inflacion_Anual_Region.png  used on input line 303.
+(pdftex.def)             Requested size: 469.75311pt x 146.79784pt.
+
+
+[3 <./Inflacion_Anual_Region.png>]
+LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 3
+22.
 (C:\Users\rubi6\AppData\Local\Programs\MiKTeX\tex/latex/lm\ts1lmr.fd
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 
-[2]
-
-[3]
-
 [4]
+<CPI_Region_Año.png, id=52, 1204.5pt x 301.125pt>
+File: CPI_Region_Año.png Graphic file (type png)
+<use CPI_Region_Año.png>
+Package pdftex.def Info: CPI_Region_Año.png  used on input line 461.
+(pdftex.def)             Requested size: 469.75311pt x 117.43826pt.
 
-[5]
+
+[5 <./CPI_Region_Año.png>]
+<Correlacion_CPI_Inflacion.png, id=65, 1129.21875pt x 376.40625pt>
+File: Correlacion_CPI_Inflacion.png Graphic file (type png)
+<use Correlacion_CPI_Inflacion.png>
+Package pdftex.def Info: Correlacion_CPI_Inflacion.png  used on input line 595.
+
+(pdftex.def)             Requested size: 469.75426pt x 156.58475pt.
+
+
+[6]
+
+[7 <./Correlacion_CPI_Inflacion.png>]
 
 ! LaTeX Error: Unicode character α (U+03B1)
                not set up for use with LaTeX.
@@ -579,14 +602,14 @@ See the LaTeX manual or LaTeX Companion for explanation.
 Type  H <return>  for immediate help.
  ...                                              
                                                   
-l.582 ...e significancia comúnmente utilizado (α
-                                                   
+l.749     utilizado (\textbf{α}
+                                 = 0.05). Esto significa que podemos rechazar 
 Here is how much of TeX's memory you used:
- 13939 strings out of 473898
- 220770 string characters out of 5726478
- 660818 words of memory out of 5000000
- 36520 multiletter control sequences out of 15000+600000
- 587710 words of font info for 95 fonts, out of 8000000 for 9000
+ 14007 strings out of 473898
+ 222187 string characters out of 5726478
+ 664099 words of memory out of 5000000
+ 36553 multiletter control sequences out of 15000+600000
+ 597369 words of font info for 105 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  83i,6n,93p,1027b,618s stack positions out of 10000i,1000n,20000p,200000b,200000s
 

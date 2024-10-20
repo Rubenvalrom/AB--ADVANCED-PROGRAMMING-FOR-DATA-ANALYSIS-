@@ -101,49 +101,112 @@
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \urlstyle{same}
 \hypersetup{
-  pdftitle={AB ADVANCED PROGRAMMING FOR DATA ANALYSIS},
+  pdftitle={ANÁLISIS DE LA CORRELACIÓN ENTRE LA INFLACIÓN Y LA PERCEPCIÓN DE CORRUPCIÓN},
   pdfauthor={Rubén Valverde Romero},
   hidelinks,
   pdfcreator={LaTeX via pandoc}}
 
-\title{AB ADVANCED PROGRAMMING FOR DATA ANALYSIS}
+\title{ANÁLISIS DE LA CORRELACIÓN ENTRE LA INFLACIÓN Y LA PERCEPCIÓN DE
+CORRUPCIÓN}
 \author{Rubén Valverde Romero}
-\date{2024-10-18}
+\date{2024-10-19}
 
 \begin{document}
 \maketitle
 
+{
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+\subsection{Introducción}\label{introduccion}
+
+El objetivo de este informe es analizar la relación entre la inflación y
+la corrupción.
+
+\subsection{Limpieza de datos}\label{limpieza-de-datos}
+
+\subsubsection{Carga y Visualización del
+DataFrame}\label{carga-y-visualizacion-del-dataframe}
+
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{library}\NormalTok{(tidyr)}
-\FunctionTok{library}\NormalTok{(dplyr)}
-\FunctionTok{library}\NormalTok{(ggplot2)}
-
 \NormalTok{df }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"inflation\_corruption\_1995\_2023\_Ruben\_Valverde.csv"}\NormalTok{)}
-\FunctionTok{head}\NormalTok{(df)}
+\FunctionTok{head}\NormalTok{(df[}\DecValTok{0}\SpecialCharTok{:}\DecValTok{6}\NormalTok{])}
+\end{Highlighting}
+\end{Shaded}
 
+\begin{verbatim}
+##       country iso region inflation_2023 score_2023 rank_2023
+## 1 Afghanistan AFG     AP        no data         20       162
+## 2     Albania ALB    ECA            4.8         37        98
+## 3     Algeria DZA   MENA            9.3         36       104
+## 4      Angola AGO    SSA           13.6         33       121
+## 5   Argentina ARG    AME          133.5         37        98
+## 6     Armenia ARM    ECA              2         47        62
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Nota: El resto de columnas son repeticiones de las columnas 3, 4 y 5 por lo que mostrarlas no aportan más información y empeoran la estética}
+\end{Highlighting}
+\end{Shaded}
+
+\subsubsection{Reemplazo de Valores ``no data'' por
+NA}\label{reemplazo-de-valores-no-data-por-na}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Contar valores "no data" en cada columna}
 \NormalTok{inflation }\OtherTok{\textless{}{-}}\NormalTok{ df[, }\FunctionTok{grepl}\NormalTok{(}\StringTok{"inflation"}\NormalTok{, }\FunctionTok{names}\NormalTok{(df))]}
 \NormalTok{no\_data\_count }\OtherTok{\textless{}{-}} \FunctionTok{colSums}\NormalTok{(inflation }\SpecialCharTok{==} \StringTok{"no data"}\NormalTok{, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{)}
-\FunctionTok{print}\NormalTok{(no\_data\_count)}
-\FunctionTok{print}\NormalTok{(}\StringTok{"{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}"}\NormalTok{)}
-\FunctionTok{print}\NormalTok{(}\FunctionTok{paste}\NormalTok{(}\StringTok{"Total:"}\NormalTok{, }\FunctionTok{sum}\NormalTok{(no\_data\_count)))}
+\FunctionTok{print}\NormalTok{(}\FunctionTok{paste}\NormalTok{(}\StringTok{"Hay un total de"}\NormalTok{, }\FunctionTok{sum}\NormalTok{(no\_data\_count), }\StringTok{"valores \textquotesingle{}no data\textquotesingle{}"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
 
+\begin{verbatim}
+## [1] "Hay un total de 128 valores 'no data'"
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Reemplazar los valores "no data" por NA en todo el DataFrame porque da problemas al conteo}
 \NormalTok{df[df }\SpecialCharTok{==} \StringTok{"no data"}\NormalTok{] }\OtherTok{\textless{}{-}} \ConstantTok{NA}
+\end{Highlighting}
+\end{Shaded}
 
+\subsubsection{Conversión de Columnas a
+Numérico}\label{conversion-de-columnas-a-numerico}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Convertir las columnas de inflación de 1995 a 2023 a valores numéricos}
 \ControlFlowTok{for}\NormalTok{ (year }\ControlFlowTok{in} \DecValTok{1995}\SpecialCharTok{:}\DecValTok{2023}\NormalTok{) \{}
 \NormalTok{  column }\OtherTok{\textless{}{-}} \FunctionTok{paste}\NormalTok{(}\StringTok{"inflation"}\NormalTok{, year, }\AttributeTok{sep =} \StringTok{"\_"}\NormalTok{)}
 \NormalTok{  df[[column]] }\OtherTok{\textless{}{-}} \FunctionTok{as.numeric}\NormalTok{(df[[column]])}
 \NormalTok{\}}
+\end{Highlighting}
+\end{Shaded}
 
+\subsubsection{Conteo de valores NA}\label{conteo-de-valores-na}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Contar y mostrar el número de valores nulos por columna}
-\FunctionTok{print}\NormalTok{(}\FunctionTok{colSums}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(df)))}
-\FunctionTok{print}\NormalTok{(}\StringTok{"{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}{-}"}\NormalTok{)}
 \FunctionTok{print}\NormalTok{(}\FunctionTok{paste}\NormalTok{(}\StringTok{"Hay un total de"}\NormalTok{, }\FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(df)), }\StringTok{"valores nulos"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
 
+\begin{verbatim}
+## [1] "Hay un total de 2152 valores nulos"
+\end{verbatim}
 
+\subsection{Análisis de la Evolución de la Inflación Promedio Anual por
+Región}\label{analisis-de-la-evoluciuxf3n-de-la-inflacion-promedio-anual-por-region}
+
+\subsubsection{Formateo del DataFrame}\label{formateo-del-dataFrame}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Transformar el DataFrame de formato ancho a formato largo para poder analizar los datos de inflación, puntuación y rango a lo largo del tiempo posteriormente}
 \NormalTok{df\_melted }\OtherTok{\textless{}{-}}\NormalTok{ df }\SpecialCharTok{\%\textgreater{}\%}
   \FunctionTok{pivot\_longer}\NormalTok{(}\AttributeTok{cols =} \FunctionTok{starts\_with}\NormalTok{(}\StringTok{"inflation\_"}\NormalTok{) }\SpecialCharTok{|} \FunctionTok{starts\_with}\NormalTok{(}\StringTok{"score\_"}\NormalTok{) }\SpecialCharTok{|} \FunctionTok{starts\_with}\NormalTok{(}\StringTok{"rank\_"}\NormalTok{),}
@@ -155,9 +218,51 @@
 \NormalTok{df\_melted }\OtherTok{\textless{}{-}}\NormalTok{ df\_melted }\SpecialCharTok{\%\textgreater{}\%}
     \FunctionTok{mutate}\NormalTok{(}\FunctionTok{across}\NormalTok{(}\FunctionTok{c}\NormalTok{(inflation, rank, score), as.numeric))}
 \FunctionTok{head}\NormalTok{(df\_melted)}
+\end{Highlighting}
+\end{Shaded}
 
+\begin{verbatim}
+## # A tibble: 6 x 7
+##   country     iso   region year  inflation score  rank
+##   <chr>       <chr> <chr>  <chr>     <dbl> <dbl> <dbl>
+## 1 Afghanistan AFG   AP     2023       NA      20   162
+## 2 Afghanistan AFG   AP     2022       10.6    24   150
+## 3 Afghanistan AFG   AP     2021        7.8    16   174
+## 4 Afghanistan AFG   AP     2020        5.6    19   165
+## 5 Afghanistan AFG   AP     2019        2.3    16   173
+## 6 Afghanistan AFG   AP     2018        0.6    16   172
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \FunctionTok{summary}\NormalTok{(df\_melted)}
+\end{Highlighting}
+\end{Shaded}
 
+\begin{verbatim}
+##    country              iso               region              year          
+##  Length:5133        Length:5133        Length:5133        Length:5133       
+##  Class :character   Class :character   Class :character   Class :character  
+##  Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+##                                                                             
+##                                                                             
+##                                                                             
+##                                                                             
+##    inflation            score            rank       
+##  Min.   :  -72.70   Min.   : 0.40   Min.   :  1.00  
+##  1st Qu.:    1.80   1st Qu.: 3.50   1st Qu.: 35.00  
+##  Median :    4.00   Median :10.00   Median : 74.00  
+##  Mean   :   28.78   Mean   :24.07   Mean   : 78.74  
+##  3rd Qu.:    8.10   3rd Qu.:38.00   3rd Qu.:121.00  
+##  Max.   :65374.10   Max.   :92.00   Max.   :182.00  
+##  NA's   :128        NA's   :1012    NA's   :1012
+\end{verbatim}
+
+\subsubsection{Visualización de la
+Inflación}\label{visualizacion-de-la-inflacion}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Crear un DataFrame con la inflación promedio anual por región}
 \NormalTok{df\_avg\_inflation }\OtherTok{\textless{}{-}}\NormalTok{ df\_melted }\SpecialCharTok{\%\textgreater{}\%}
     \FunctionTok{group\_by}\NormalTok{(region, year) }\SpecialCharTok{\%\textgreater{}\%}
@@ -181,24 +286,25 @@
     \AttributeTok{legend.text =} \FunctionTok{element\_text}\NormalTok{(}\AttributeTok{size =} \DecValTok{14}\NormalTok{)}
 \NormalTok{)}
 \CommentTok{\# Crear el lineplot}
-\FunctionTok{ggplot}\NormalTok{(df\_avg\_inflation, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ year, }\AttributeTok{y =}\NormalTok{ inflation, }\AttributeTok{color =}\NormalTok{ region, }\AttributeTok{group =}\NormalTok{ region)) }\SpecialCharTok{+}
+\NormalTok{A }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(df\_avg\_inflation, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ year, }\AttributeTok{y =}\NormalTok{ inflation, }\AttributeTok{color =}\NormalTok{ region, }\AttributeTok{group =}\NormalTok{ region)) }\SpecialCharTok{+}
     \FunctionTok{geom\_line}\NormalTok{(}\AttributeTok{size=}\FloatTok{1.5}\NormalTok{) }\SpecialCharTok{+}
     \FunctionTok{scale\_y\_continuous}\NormalTok{(}\AttributeTok{limits =} \FunctionTok{c}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{23}\NormalTok{)) }\SpecialCharTok{+}
     \FunctionTok{geom\_text}\NormalTok{(}\AttributeTok{data =}\NormalTok{ df\_avg\_inflation }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{filter}\NormalTok{(inflation }\SpecialCharTok{\textgreater{}} \DecValTok{23}\NormalTok{),}
               \FunctionTok{aes}\NormalTok{(}\AttributeTok{label =} \FunctionTok{round}\NormalTok{(inflation, }\DecValTok{1}\NormalTok{), }\AttributeTok{y =} \DecValTok{23}\NormalTok{),}
               \AttributeTok{color =} \StringTok{"green"}\NormalTok{, }\AttributeTok{size =} \DecValTok{3}\NormalTok{, }\AttributeTok{vjust =} \SpecialCharTok{{-}}\FloatTok{0.5}\NormalTok{) }\SpecialCharTok{+}
+    \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{size=}\DecValTok{3}\NormalTok{) }\SpecialCharTok{+}
     \FunctionTok{labs}\NormalTok{(}\AttributeTok{title =} \StringTok{"Evolución de la Inflación Promedio Anual por Región"}\NormalTok{,}
          \AttributeTok{x =} \StringTok{"Año"}\NormalTok{,}
          \AttributeTok{y =} \StringTok{"Inflación Promedio"}\NormalTok{,}
          \AttributeTok{color =} \StringTok{"Región"}\NormalTok{)}
-
-\NormalTok{knitr}\SpecialCharTok{::}\FunctionTok{include\_graphics}\NormalTok{(}\StringTok{"Inflacion\_Anual\_Region.png"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
+\includegraphics{Inflacion_Anual_Region.png}
+
 \subsubsection{Análisis del Gráfico de Evolución de la Inflación
 Promedio Anual por
-Región}\label{anuxe1lisis-del-gruxe1fico-de-evoluciuxf3n-de-la-inflaciuxf3n-promedio-anual-por-regiuxf3n}
+Región}\label{analisis-del-grafico-de-evolucion-de-la-inflacion-promedio-anual-por-region}
 
 El gráfico muestra la evolución de la inflación promedio anual por
 región desde 1995 hasta 2023. A continuación, se presentan algunos
@@ -285,6 +391,13 @@ puntos clave observados en el gráfico:
   \end{itemize}
 \end{enumerate}
 
+\subsection{Análisis de la Evolución del Indice de Percepción de
+Corrupción Promedio Anual (CPI) por
+Región}\label{analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
+
+\subsubsection{Adaptación al Cambio de Formato de
+2012}\label{adaptacion-formato-cpi}
+
 \begin{Shaded}
 \begin{Highlighting}[]
 \CommentTok{\# Al ejecutar el gráfico previamente se podia observar que el formato del CPI cambió en 2012, siendo 100 la puntuación máxima en lugar de 10.}
@@ -293,11 +406,32 @@ puntos clave observados en el gráfico:
     \FunctionTok{group\_by}\NormalTok{(region, year) }\SpecialCharTok{\%\textgreater{}\%}
     \FunctionTok{summarise}\NormalTok{(}\AttributeTok{score =} \FunctionTok{mean}\NormalTok{(score, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{), }\AttributeTok{.groups =} \StringTok{"drop"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
     \FunctionTok{head}\NormalTok{(}\DecValTok{4}\NormalTok{)}
-    
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 4 x 3
+##   region year  score
+##   <chr>  <chr> <dbl>
+## 1 AME    2010   4.02
+## 2 AME    2011   4.16
+## 3 AME    2012  44.9 
+## 4 AME    2013  44.3
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Multiplico por 10 el CPI de los años 1995 hasta 2011 para que estén en la misma escala que los años posteriores}
 \NormalTok{df\_melted }\OtherTok{\textless{}{-}}\NormalTok{ df\_melted }\SpecialCharTok{\%\textgreater{}\%}
     \FunctionTok{mutate}\NormalTok{(}\AttributeTok{score =} \FunctionTok{ifelse}\NormalTok{(year }\SpecialCharTok{\textgreater{}=} \DecValTok{1995} \SpecialCharTok{\&}\NormalTok{ year }\SpecialCharTok{\textless{}=} \DecValTok{2011}\NormalTok{, score }\SpecialCharTok{*} \DecValTok{10}\NormalTok{, score))}
+\end{Highlighting}
+\end{Shaded}
 
+\subsubsection{Calculo del CPI anual por
+región}\label{calculo-del-cpi-anual-por-region}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Calcular el CPI promedio anual por región}
 \NormalTok{df\_avg\_score }\OtherTok{\textless{}{-}}\NormalTok{ df\_melted }\SpecialCharTok{\%\textgreater{}\%}
     \FunctionTok{group\_by}\NormalTok{(region, year) }\SpecialCharTok{\%\textgreater{}\%}
@@ -306,23 +440,29 @@ puntos clave observados en el gráfico:
 
 \CommentTok{\# Eliminar filas con valores nulos en la columna \textquotesingle{}score\textquotesingle{}, provocaban warnings}
 \NormalTok{df\_avg\_score }\OtherTok{\textless{}{-}}\NormalTok{ df\_avg\_score }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{drop\_na}\NormalTok{(score)   }
+\end{Highlighting}
+\end{Shaded}
 
+\subsubsection{Visualización del CPI}\label{visualizacion-del-cpi}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Crear el lineplot}
-\FunctionTok{ggplot}\NormalTok{(df\_avg\_score, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ year, }\AttributeTok{y =}\NormalTok{ score, }\AttributeTok{color =}\NormalTok{ region, }\AttributeTok{group =}\NormalTok{ region)) }\SpecialCharTok{+}
+\NormalTok{A }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(df\_avg\_score, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ year, }\AttributeTok{y =}\NormalTok{ score, }\AttributeTok{color =}\NormalTok{ region, }\AttributeTok{group =}\NormalTok{ region)) }\SpecialCharTok{+}
     \FunctionTok{geom\_line}\NormalTok{(}\AttributeTok{size=}\FloatTok{1.5}\NormalTok{) }\SpecialCharTok{+}
     \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{size=}\DecValTok{3}\NormalTok{) }\SpecialCharTok{+}
     \FunctionTok{labs}\NormalTok{(}\AttributeTok{title =} \StringTok{"Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región"}\NormalTok{,}
          \AttributeTok{x =} \StringTok{"Año"}\NormalTok{,}
          \AttributeTok{y =} \StringTok{"CPI Promedio"}\NormalTok{,}
          \AttributeTok{color =} \StringTok{"Región"}\NormalTok{)}
-         
-\NormalTok{knitr}\SpecialCharTok{::}\FunctionTok{include\_graphics}\NormalTok{(}\StringTok{"CPI\_Region\_Año.png"}\NormalTok{)}
 \end{Highlighting}
 \end{Shaded}
 
-\subsubsection{Análisis del Gráfico de Evolución de la Puntuación de
-Corrupción Promedio Anual por
-Región}\label{anuxe1lisis-del-gruxe1fico-de-evoluciuxf3n-de-la-puntuaciuxf3n-de-corrupciuxf3n-promedio-anual-por-regiuxf3n}
+\includegraphics{CPI_Region_Año.png}
+
+\subsubsection{Análisis del Gráfico de Evolución de la Puntuación de la
+Percepción de Corrupción (CPI) Promedio Anual por
+Región}\label{analisis-del-grafico-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
 
 El gráfico muestra la evolución de la puntuación de corrupción promedio
 anual por región desde 1995 hasta 2023. A continuación, se presentan
@@ -410,12 +550,18 @@ algunos puntos clave observados en el gráfico:
   \end{itemize}
 \end{enumerate}
 
+\subsection{Análisis de la Correlación entre la Puntuación de Corrupción
+y la
+Inflación}\label{analisis-de-la-correlacion-entre-la-puntuacion-de-corrupcion-y-la-inflacion}
+
+\subsubsection{Calculo de valores medianos de inflación y medios de
+puntuación de corrupción}\label{calculo-inflacion-cpi}
+
 \begin{Shaded}
 \begin{Highlighting}[]
-
 \CommentTok{\# Calculo los valores medios de inflación y puntuación de corrupción por país}
 \NormalTok{df\_avg }\OtherTok{\textless{}{-}}\NormalTok{ df\_melted }\SpecialCharTok{\%\textgreater{}\%}
-    \FunctionTok{group\_by}\NormalTok{(country, region) }\SpecialCharTok{\%\textgreater{}\%} \CommentTok{\# nolint}
+    \FunctionTok{group\_by}\NormalTok{(country, region) }\SpecialCharTok{\%\textgreater{}\%} 
     \FunctionTok{summarise}\NormalTok{(}
         \AttributeTok{inflation =} \FunctionTok{median}\NormalTok{(inflation, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{),}
         \AttributeTok{score =} \FunctionTok{mean}\NormalTok{(score, }\AttributeTok{na.rm =} \ConstantTok{TRUE}\NormalTok{), }\AttributeTok{.groups =} \StringTok{"drop"}
@@ -423,12 +569,18 @@ algunos puntos clave observados en el gráfico:
     \FunctionTok{arrange}\NormalTok{(region, country)}
     
 \CommentTok{\# Nota1: ordeno por región y país para que el hue siga el mismo orden que el resto}
-\CommentTok{\# Nota2: utilizo la mediana para la inflación para evitar que valores extremos }
-\CommentTok{\# como los de Bulgaria y Venezuela ya mencionados.}
+\CommentTok{\# Nota2: utilizo la mediana para la inflación para evitar que valores extremos como los de Bulgaria y Venezuela ya mencionados.}
+\end{Highlighting}
+\end{Shaded}
 
+\subsubsection{Visualización de la
+correlación}\label{visualizacion-correlacion}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \CommentTok{\# Crear el scatter plot para visualizar la correlación entre inflación y puntuación de corrupción}
-\CommentTok{\# Crear el scatter plot con una línea de regresión única para todas las regiones}
-\FunctionTok{ggplot}\NormalTok{(df\_avg, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ inflation, }\AttributeTok{y =}\NormalTok{ score, }\AttributeTok{color =}\NormalTok{ region)) }\SpecialCharTok{+}
+\CommentTok{\# Crear el scatter plot con una línea de regresión única para todas las regiones pero sin el scatter (Quiero una única linea de regresión)}
+\NormalTok{A }\OtherTok{\textless{}{-}} \FunctionTok{ggplot}\NormalTok{(df\_avg, }\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ inflation, }\AttributeTok{y =}\NormalTok{ score, }\AttributeTok{color =}\NormalTok{ region)) }\SpecialCharTok{+}
     \FunctionTok{geom\_point}\NormalTok{(}\AttributeTok{size =} \DecValTok{3}\NormalTok{) }\SpecialCharTok{+}
     \FunctionTok{geom\_smooth}\NormalTok{(}\AttributeTok{method =} \StringTok{"lm"}\NormalTok{, }\AttributeTok{se =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{linetype =} \StringTok{"dashed"}\NormalTok{, }\AttributeTok{size =} \FloatTok{2.5}\NormalTok{, }\AttributeTok{color =} \StringTok{"black"}\NormalTok{, }\AttributeTok{formula =}\NormalTok{ y }\SpecialCharTok{\textasciitilde{}}\NormalTok{ x) }\SpecialCharTok{+}
     \FunctionTok{labs}\NormalTok{(}
@@ -437,14 +589,13 @@ algunos puntos clave observados en el gráfico:
         \AttributeTok{y =} \StringTok{"Puntuación de Corrupción Promedio"}\NormalTok{,}
         \AttributeTok{color =} \StringTok{"Región"}
 \NormalTok{    )}
-\NormalTok{knitr}\SpecialCharTok{::}\FunctionTok{include\_graphics}\NormalTok{(}\StringTok{"Correlacion\_CPI\_Inflacion.png"}\NormalTok{)}
-   
 \end{Highlighting}
 \end{Shaded}
 
-\subsubsection{Análisis de la Correlación entre la Puntuación de
-Corrupción y la
-Inflación}\label{anuxe1lisis-de-la-correlaciuxf3n-entre-la-puntuaciuxf3n-de-corrupciuxf3n-y-la-inflaciuxf3n}
+\includegraphics{Correlacion_CPI_Inflacion.png}
+
+\subsubsection{Análisis del gráfico de la Correlación entre el CPI y la
+Inflación}\label{analisis-del-grafico-correlacion-cpi-inflacion}
 
 El scatterplot muestra la relación entre la inflación y la puntuación de
 corrupción promedio por país. A continuación, se presentan algunos
@@ -482,7 +633,7 @@ puntos clave observados en el gráfico:
   \begin{itemize}
   \tightlist
   \item
-    Europa Occidental y Estados Unidos (WE/EU) y Asia-Pacífico (AP)
+    Europa Occidental, la Union Europea(WE/EU) y Asia-Pacífico (AP)
     muestran inflaciones relativamente bajas y puntuaciones de
     corrupción más altas, lo que indica menores niveles de corrupción.
     Esto sugiere una mejor gestión económica y políticas más efectivas
@@ -518,6 +669,9 @@ las regiones con baja inflación muestran menores niveles de corrupción.
 Este análisis destaca la importancia de la estabilidad económica y la
 buena gobernanza en la retención del poder adquisitivo de la moneda.
 
+\subsubsection{Coeficiente de Correlación de Spearman's
+Rank}\label{spearman}
+
 \begin{Shaded}
 \begin{Highlighting}[]
 \CommentTok{\# Calcular el coeficiente de correlación de Spearman}
@@ -532,6 +686,15 @@ buena gobernanza en la retención del poder adquisitivo de la moneda.
 
 \CommentTok{\# Mostrar los resultados}
 \FunctionTok{cat}\NormalTok{(}\StringTok{"Coeficiente de Correlación de Spearman\textquotesingle{}s Rank:"}\NormalTok{, corr\_test}\SpecialCharTok{$}\NormalTok{estimate, }\StringTok{"}\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Coeficiente de Correlación de Spearman's Rank: -0.4098749
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
 \ControlFlowTok{if}\NormalTok{ (corr\_test}\SpecialCharTok{$}\NormalTok{p.value }\SpecialCharTok{\textless{}}\NormalTok{ alpha) \{}
   \FunctionTok{cat}\NormalTok{(}\StringTok{"p{-}valor:"}\NormalTok{, corr\_test}\SpecialCharTok{$}\NormalTok{p.value, }\StringTok{", Se rechaza la hipótesis nula}\SpecialCharTok{\textbackslash{}n}\StringTok{"}\NormalTok{)}
 \NormalTok{\} }\ControlFlowTok{else}\NormalTok{ \{}
@@ -540,8 +703,11 @@ buena gobernanza en la retención del poder adquisitivo de la moneda.
 \end{Highlighting}
 \end{Shaded}
 
-\subsubsection{Resultado del Coeficiente de Correlación de Spearman's
-Rank}\label{resultado-del-coeficiente-de-correlaciuxf3n-de-spearmans-rank}
+\begin{verbatim}
+## p-valor: 6.571181e-165 , Se rechaza la hipótesis nula
+\end{verbatim}
+
+\paragraph{Resultados:}\label{resultados}
 
 El Coeficiente de Correlación de Spearman's Rank calculado entre las
 columnas \texttt{inflation} y \texttt{score} ha arrojado los siguientes
@@ -555,7 +721,7 @@ resultados:
   \textbf{p-valor}: 6.571181e-165
 \end{itemize}
 
-\paragraph{Interpretación:}\label{interpretaciuxf3n}
+\paragraph{Interpretación:}\label{interpretacion}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -578,17 +744,18 @@ resultados:
   \begin{itemize}
   \tightlist
   \item
-    El p-valor obtenido es extremadamente bajo (6.571181e-165), lo que
-    es mucho menor que el nivel de significancia comúnmente utilizado (α
-    = 0.05). Esto significa que podemos rechazar la hipótesis nula de
-    que no existe correlación entre la inflación y la puntuación de
-    corrupción. En otras palabras, la correlación observada es
-    estadísticamente significativa.
+    El \textbf{p-valor} obtenido es extremadamente bajo (6.571181e-165),
+    lo que es mucho menor que el nivel de significancia comúnmente
+    utilizado (\textbf{α} = 0.05). Esto significa que podemos rechazar
+    la hipótesis nula de que no existe correlación entre la inflación y
+    la puntuación de corrupción. En otras palabras, la correlación
+    observada es estadísticamente significativa.
   \end{itemize}
 \end{enumerate}
 
 En resumen, los resultados del Coeficiente de Correlación de Spearman's
 Rank sugieren que existe una correlación negativa significativa entre la
-inflación y la puntuación de corrupción en los datos analizados.
+inflación y la puntuación de corrupción en los datos analizados. :::
+::::
 
 \end{document}

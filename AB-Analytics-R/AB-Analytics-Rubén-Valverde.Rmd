@@ -4,87 +4,11 @@ author: "Rubén Valverde Romero"
 date: "2024-10-19"
 output:
   html_document:
-    keep_md: true
+    theme: cosmo
+    toc: yes
+    toc_float:
+      collapsed: true
 ---
-
-<head><link rel="stylesheet" href="styles.css"></head>
-
-<body>
-  <button class="boton-expansion">↓</button>
-:::: {#indice .collapsible}
-  <h2>Índice</h2>
-
- 
-
-::: {style="padding-top: 0;"}
--   [Introducción](#introduccion)
-
--   [Limpieza de Datos](#limpieza-de-datos)
-
-    -   [Carga y Visualización del DataFrame](#carga-y-visualizacion-del-dataframe)
-    -   [Reemplazo de Valores "no data" por NA](#reemplazo-de-valores-no-data-por-na)
-    -   [Conversión de Columnas a Numérico](#conversion-de-columnas-a-numerico)
-    -   [Conteo de valores NA](#conteo-de-valores-na)
-    
--   [Análisis de la Evolución de la Inflación Promedio Anual por Región](#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region)
-
-    -   [Formateo del DataFrame](#formateo-del-dataFrame)
-    -   [Visualización de la Inflación](#visualizacion-de-la-inflacion)
-    -   [Análisis del Gráfico de Evolución de la Inflación Promedio Anual por Región](#analisis-del-grafico-de-evolucion-de-la-inflacion-promedio-anual-por-region)
-
--   [Análisis de la Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región](#analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region)
-
-    -   [Adaptación al Cambio de Formato de 2012](#adaptacion-formato-cpi)
-    -   [Calculo del CPI anual por región](#calculo-del-cpi-anual-por-region)
-    -   [Visualización del CPI](#visualizacion-del-cpi)
-    -   [Análisis del Gráfico de la Evolución de la Puntuación de la Percepción de Corrupción (CPI) Promedio Anual por Región](#analisis-del-grafico-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region)
-
--   [Análisis de la Correlación entre la Puntuación de Corrupción y la Inflación](#analisis-de-la-correlacion-entre-la-puntuacion-de-corrupcion-y-la-inflacion)
-
-    -   [Calculo de valores medianos de inflación y medios de puntuación de corrupción](#calculo-inflacion-cpi)
-    -   [Visualización de la correlación](#visualizacion-correlacion)
-    -   [Análisis del gráfico de la Correlación entre el CPI y la Inflación](#analisis-del-grafico-correlacion-cpi-inflacion)
-    -   [Coeficiente de Correlación de Spearman's Rank](#spearman)
-        -   [Resultados](#resultados)
-        -   [Interpretación](#interpretacion)
-
-    </div>
-
-    </div>
-
-    <script>
-      const boton = document.querySelector('.boton-expansion');
-      const indice = document.getElementById('indice');
-      
-      const newLeftValue = Math.floor(indice.offsetWidth * 0.9);
-      boton.style.left = `${newLeftValue}px`;
-      
-      
-      boton.addEventListener('click', () => {
-        if (indice.classList.contains('expanded')) {
-          indice.classList.remove('expanded');
-          indice.style.maxHeight = '55px';
-          boton.classList.remove('expanded');
-          boton.textContent = '↓';
-      
-          // Calculate the new left value
-          const newLeftValue = Math.floor(indice.offsetWidth * 0.9);
-          boton.style.left = `${newLeftValue}px`;
-        } else {
-          indice.classList.add('expanded');
-          indice.style.maxHeight = '100vh';
-          boton.classList.add('expanded');
-          boton.textContent = '↑';
-      
-          // Reset the left value
-          const newLeftValue = Math.floor(indice.offsetWidth * 0.9);
-          boton.style.left = `${newLeftValue}px`;
-        }
-      });
-      </script>
-
-    </body>
-
 
 ## Introducción {#introduccion}
 
@@ -393,6 +317,4 @@ El Coeficiente de Correlación de Spearman's Rank calculado entre las columnas `
 2.  **p-valor**:
     -   El **p-valor** obtenido es extremadamente bajo (6.571181e-165), lo que es mucho menor que el nivel de significancia comúnmente utilizado (**α** = 0.05). Esto significa que podemos rechazar la hipótesis nula de que no existe correlación entre la inflación y la puntuación de corrupción. En otras palabras, la correlación observada es estadísticamente significativa.
 
-En resumen, los resultados del Coeficiente de Correlación de Spearman's Rank sugieren que existe una correlación negativa significativa entre la inflación y la puntuación de corrupción en los datos analizados.
-:::
-::::
+En resumen, los resultados del Coeficiente de Correlación de Spearman's Rank sugieren que existe una correlación negativa significativa entre la inflación y la puntuación de corrupción en los datos analizados. ::: ::::
