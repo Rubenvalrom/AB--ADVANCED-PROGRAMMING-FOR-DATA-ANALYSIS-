@@ -11,7 +11,7 @@
 
 <meta name="author" content="Rubén Valverde Romero" />
 
-<meta name="date" content="2024-10-19" />
+<meta name="date" content="2024-10-21" />
 
 <title>ANÁLISIS DE LA CORRELACIÓN ENTRE LA INFLACIÓN Y LA PERCEPCIÓN DE CORRUPCIÓN</title>
 
@@ -1500,15 +1500,45 @@ border-radius: 0px;
 <h1 class="title toc-ignore">ANÁLISIS DE LA CORRELACIÓN ENTRE LA
 INFLACIÓN Y LA PERCEPCIÓN DE CORRUPCIÓN</h1>
 <h4 class="author">Rubén Valverde Romero</h4>
-<h4 class="date">2024-10-19</h4>
+<h4 class="date">2024-10-21</h4>
 
 </div>
 
 
 <div id="introduccion" class="section level2">
 <h2>Introducción</h2>
-<p>El objetivo de este informe es analizar la relación entre la
-inflación y la corrupción.</p>
+<p>El objetivo principal de este análisis es estudiar la corelación
+entre la <code>inflación</code> y el indice de percepcion de corrupción
+(<code>CPI</code>).</p>
+<div id="obtencion-de-los-datos" class="section level3">
+<h3>Obtención de los Datos</h3>
+<p>Los datos utilizados en este análisis provienen de dos fuentes
+principales:</p>
+<ul>
+<li><p><strong>Inflación</strong>: Los datos de inflación anual por país
+y región se obtuvieron del <a href="https://www.imf.org/external/datamapper/NGDP_RPCH@WEO/OEMDC/ADVEC/WEOWORLD" title="Fondo Monetario Internacional">Fondo Monetario
+Internacional</a>.</p></li>
+<li><p><strong>Índice de Percepción de Corrupción (CPI)</strong>: Los
+datos del CPI se obtuvieron de <a href="https://www.transparency.org/en/" title="transparency.org">transparency.org</a>, una organización sin
+fines de lucro que publica anualmente el índice de percepción de
+corrupción.</p></li>
+</ul>
+<p>Una vez obtenidos los distintos datasets se juntaron basandose en dos
+columnas distintas, según el caso podía ser el <code>ISO</code> o el
+<code>nombre</code> de un país. Con frecuencia la ortografía de un país
+variaba de uno a otro, los pasos que seguí fueron:</p>
+<ul>
+<li><p>Creación de 2 arrays con los nombres de los paises</p></li>
+<li><p>Creación y de 1 array con los nombres que no coinciden</p></li>
+<li><p>En vez de revisarlo manualmente le pase el array a Llama 3.1
+varias veces hasta obtener una lista con todos los paises que aparecen
+en ambos datasets pero con distinto nombre</p></li>
+<li><p>Con esa lista se cambia la ortografía del nombre de los paises
+del segundo dataset a los del primero</p></li>
+<li><p>Se realiza un merge con el nombre del país como columna en
+común.</p></li>
+</ul>
+</div>
 </div>
 <div id="limpieza-de-datos" class="section level2">
 <h2>Limpieza de datos</h2>
@@ -1549,10 +1579,6 @@ for (year in 1995:2023) {
 print(paste(&quot;Hay un total de&quot;, sum(is.na(df)), &quot;valores nulos&quot;))</code></pre>
 <pre><code>## [1] &quot;Hay un total de 2152 valores nulos&quot;</code></pre>
 </div>
-</div>
-<div id="analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region" class="section level2">
-<h2>Análisis de la Evolución de la Inflación Promedio Anual por
-Región</h2>
 <div id="formateo-del-dataFrame" class="section level3">
 <h3>Formateo del DataFrame</h3>
 <pre class="r"><code># Transformar el DataFrame de formato ancho a formato largo para poder analizar los datos de inflación, puntuación y rango a lo largo del tiempo posteriormente
@@ -1593,6 +1619,56 @@ head(df_melted)</code></pre>
 ##  Max.   :65374.10   Max.   :92.00   Max.   :182.00  
 ##  NA&#39;s   :128        NA&#39;s   :1012    NA&#39;s   :1012</code></pre>
 </div>
+<div id="analisis-del-resumen-del-dataframe-transformado" class="section level3">
+<h3>Análisis del DataFrame Transformado</h3>
+<ol style="list-style-type: decimal">
+<li><strong>Inflación</strong>:
+<ul>
+<li>La inflación muestra una amplia variabilidad, con valores que van
+desde negativos hasta extremadamente altos. Esto refleja las diferencias
+significativas en las tasas de inflación entre los países y a lo largo
+del tiempo.</li>
+<li>La mediana de la inflación es relativamente baja, lo que sugiere que
+la mayoría de los países tienen tasas de inflación moderadas, aunque hay
+algunos valores atípicos que elevan la media.</li>
+</ul></li>
+<li><strong>Puntuación de Corrupción (CPI)</strong>:
+<ul>
+<li>Los valores pueden ir teóricamente de 0 a 100, aunque en la práctica
+los valores reales están en un rango más estrecho.</li>
+<li>La puntuación de corrupción también muestra variabilidad, aunque en
+menor medida que la inflación. Los valores van desde muy bajos (alta
+percepción de corrupción) hasta relativamente altos (baja percepción de
+corrupción).</li>
+<li>La mediana de la puntuación de corrupción es moderada, lo que indica
+que muchos países tienen niveles de corrupción percibidos en un rango
+medio.</li>
+</ul></li>
+<li><strong>Rango de Corrupción</strong>:
+<ul>
+<li>Representa el puesto de un país en el índice de percepción de
+corrupción (CPI). Siendo el puesto 1 el pais con una menor percepción de
+corrupción.</li>
+</ul></li>
+<li><strong>Años</strong>:
+<ul>
+<li>Los datos abarcan desde 1995 hasta 2023. Esto permite un análisis
+longitudinal de las tendencias en la inflación y la percepción de
+corrupción.</li>
+</ul></li>
+</ol>
+<p>En resumen, el resumen del DataFrame transformado
+(<code>df_melted</code>) destaca la variabilidad en las tasas de
+inflación y las puntuaciones de corrupción entre los países y a lo largo
+del tiempo.<br />
+Esta variabilidad es crucial para el análisis de la correlación entre
+estas dos variables, ya que proporciona una base sólida para identificar
+patrones y tendencias significativas.</p>
+</div>
+</div>
+<div id="analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region" class="section level2">
+<h2>Análisis de la Evolución de la Inflación Promedio Anual por
+Región</h2>
 <div id="visualizacion-de-la-inflacion" class="section level3">
 <h3>Visualización de la Inflación</h3>
 <pre class="r"><code># Crear un DataFrame con la inflación promedio anual por región
