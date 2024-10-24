@@ -4,6 +4,7 @@ author: "Rubén Valverde Romero"
 date: "2024-10-21"
 output:
   html_document:
+    css: style.css
     theme: cosmo
     toc: true
     toc_float:
@@ -165,29 +166,26 @@ knitr::include_graphics("Inflacion_Anual_Region.png")
 
 ```
 
-### Análisis del Gráfico de Evolución de la Inflación Promedio Anual por Región {#analisis-del-grafico-de-evolucion-de-la-inflacion-promedio-anual-por-region}
+### Análisis del Gráfico de Evolución de la Inflación Mediana Anual por Región {#analisis-del-grafico-de-evolucion-de-la-inflacion-promedio-anual-por-region}
 
 El gráfico muestra la evolución de la inflación promedio anual por región desde 1995 hasta 2023. A continuación, se presentan algunos puntos clave observados en el gráfico:
 
-1.  **América (AME)**:
+1.  **Patrones Generales**:
+    -   La crisis del 2008 y los estímulos monetarios de la crisis del 2021 se vieron reflejados en un aumento de la inflación mundial.
+    -   Durante los años proximos de la crisis surge una bajada lenta de la inflación.
+2.  **América (AME) y África Subsahariana (SSA)**:
     -   Se observa una tendencia general a la baja en la inflación desde 1995 hasta principios de la década de 2000.
-    -   Sin embargo, hay picos significativos en ciertos años, lo que indica episodios de alta inflación en algunos países de la región.
-    -   En los últimos años, la inflación ha vuelto a aumentar, alcanzando niveles preocupantes.
-2.  **África Subsahariana (SSA)**:
-    -   La región muestra una tendencia similar a la de Latinoamérica, con una disminución de la inflación en la primera década del siglo XXI.
-    -   A partir de 2010, la inflación ha mostrado una tendencia al alza, con picos notables en algunos años.
 3.  **Asia-Pacífico (AP)**:
     -   La región ha mantenido una inflación relativamente baja y estable en comparación con otras regiones.
     -   Aunque hay algunos picos, la inflación en Asia-Pacífico ha sido más controlada.
-4.  **Europa Occidental y Union Europea (WE/EU)**:
+4.  **Europa Occidental y Unión Europea (WE/EU)**:
     -   Esta región ha experimentado una inflación muy baja y estable durante la mayor parte del período analizado.
-    -   Sin embargo, en los últimos años se observa un aumento en la inflación, esto es debido al aumento maviso de la masa monetaria para superar la crisis del covid en un corto periodo de tiempo.
 5.  **Medio Oriente y Norte de África (MENA)**:
-    -   La región muestra una inflación relativamente alta en comparación con Europa y Asia-Pacífico.
-    -   Hay fluctuaciones significativas en la inflación, lo que indica inestabilidad económica en algunos países de la región.
+    -   En 2008 tuvo el peor desempeño relativamente dado que empieza al nivel de AP(5%) y termina junto a SSA(11%).
+    -   Sin embargo en 2022 muestra unos resultados muy buenos conteniendo la inflación.
 6.  **Europa Oriental y Asia Central (ECA)**:
-    -   La región de ECA muestra una tendencia fluctuante en la inflación a lo largo de los años.
-    -   Aunque algunos países han logrado mantener una inflación baja y estable, otros continúan enfrentando episodios de alta inflación.
+    -   Muestra una tendencia fluctuante en la inflación a lo largo de los años.
+    -   La región muestra una inflación muy alta hasta 2022, donde se empieza a moderar y seguir la tendencia mundial, especialmente despues de 2008 aunque en 2022 vuelve a despuntar.
 
 ## Análisis de la Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región {#analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
 
@@ -246,23 +244,18 @@ knitr::include_graphics("CPI_Region_Año.png")
 El gráfico muestra la evolución de la puntuación de corrupción promedio anual por región desde 1995 hasta 2023. A continuación, se presentan algunos puntos clave observados en el gráfico:
 
 1.  **América (AME)**:
-    -   La puntuación de corrupción en Latinoamérica ha mostrado una tendencia fluctuante a lo largo de los años.
-    -   Aunque hay años en los que se observa una mejora en la puntuación, la región sigue enfrentando desafíos significativos en términos de corrupción.
+    -   La puntuación de corrupción en Iberoamérica ha mostrado una tendencia muy fluctuante a lo largo de los años, especialmente al inicio.
 2.  **África Subsahariana (SSA)**:
-    -   La región de África Subsahariana muestra una tendencia similar a la de Latinoamérica, con puntuaciones de corrupción que varían considerablemente a lo largo del tiempo.
-    -   A pesar de algunos avances, la corrupción sigue siendo un problema persistente en muchos países de la región.
+    -   Muestra una tendencia similar a la de Iberoamérica, con puntuaciones de corrupción que varían considerablemente a lo largo del tiempo.
 3.  **Asia-Pacífico (AP)**:
-    -   La región de Asia-Pacífico ha mantenido una puntuación de corrupción relativamente estable en comparación con otras regiones.
-    -   Aunque hay algunos picos y valles, la puntuación de corrupción en Asia-Pacífico ha sido más controlada.
+    -   En la primera decada ha mostrado una tendencia bajista que posteriormente se estabilizó sin apenas subida.
 4.  **Europa Occidental y Union Europea (WE/EU)**:
     -   Esta región ha experimentado una puntuación de corrupción relativamente baja y estable durante la mayor parte del período analizado.
-    -   Sin embargo, en los últimos años se observa una ligera disminución en la puntuación, lo que podría indicar un aumento en los desafíos relacionados con la corrupción.
 5.  **Medio Oriente y Norte de África (MENA)**:
-    -   La región de MENA muestra una puntuación de corrupción relativamente alta en comparación con Europa y Asia-Pacífico.
-    -   Hay fluctuaciones significativas en la puntuación, lo que indica inestabilidad en la lucha contra la corrupción en algunos países de la región.
+    -   Muestra una puntuación de corrupción relativamente alta en comparación con Europa y Asia-Pacífico.
+    -   Hay fluctuaciones significativas en la puntuación, pero con tendencia a la baja.
 6.  **Europa Oriental y Asia Central (ECA)**:
-    -   La región de ECA muestra una tendencia fluctuante en la puntuación de corrupción a lo largo de los años.
-    -   Aunque algunos países han logrado mejoras significativas, otros continúan enfrentando altos niveles de corrupción.
+    -   Muestra una tendencia alcista en la puntuación de corrupción a lo largo de los años.
 
 ## Análisis de la Correlación entre la Puntuación de Corrupción y la Inflación {#analisis-de-la-correlacion-entre-la-puntuacion-de-corrupcion-y-la-inflacion}
 
@@ -352,8 +345,9 @@ El Coeficiente de Correlación de Spearman's Rank calculado entre las columnas `
 #### Interpretación: {#interpretacion}
 
 1.  **Coeficiente de Correlación**:
-    -   El valor del coeficiente de correlación de Spearman es -0.4098749, lo que indica una correlación negativa moderada entre la inflación y la puntuación de corrupción. Esto sugiere que, en general, a medida que aumenta la inflación, la puntuación de corrupción tiende a disminuir, lo que indica mayores niveles de corrupción.
+    -   El valor del coeficiente de correlación de Spearman es -0.4098749, lo que indica una correlación negativa moderada entre la inflación y la puntuación de corrupción.
+    -   Esto sugiere que, en general, a medida que aumenta la inflación tambien existe una mayor percepción de la corrupción.
 2.  **p-valor**:
     -   El **p-valor** obtenido es extremadamente bajo (6.571181e-165), lo que es mucho menor que el nivel de significancia comúnmente utilizado (**α** = 0.05). Esto significa que podemos rechazar la hipótesis nula de que no existe correlación entre la inflación y la puntuación de corrupción. En otras palabras, la correlación observada es estadísticamente significativa.
 
-En resumen, los resultados del Coeficiente de Correlación de Spearman's Rank sugieren que existe una correlación negativa significativa entre la inflación y la puntuación de corrupción en los datos analizados. ::: ::::
+En resumen, los resultados del Coeficiente de Correlación de Spearman's Rank sugieren que existe una correlación negativa significativa entre la inflación y la puntuación de corrupción en los datos analizados.
