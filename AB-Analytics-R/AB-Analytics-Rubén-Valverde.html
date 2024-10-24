@@ -1553,7 +1553,23 @@ head(df[0:6])</code></pre>
 ## 4      Angola AGO    SSA           13.6         33       121
 ## 5   Argentina ARG    AME          133.5         37        98
 ## 6     Armenia ARM    ECA              2         47        62</code></pre>
-<pre class="r"><code># Nota: El resto de columnas son repeticiones de las columnas 3, 4 y 5 por lo que mostrarlas no aportan más información y empeoran la estética</code></pre>
+<pre class="r"><code># Nota: El resto de columnas son repeticiones de las columnas 3, 4 y 5 por lo que mostrarlas no aportan más información y empeoran la estética
+
+summary(df[0:6])</code></pre>
+<pre><code>##    country              iso               region          inflation_2023    
+##  Length:177         Length:177         Length:177         Length:177        
+##  Class :character   Class :character   Class :character   Class :character  
+##  Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+##                                                                             
+##                                                                             
+##                                                                             
+##    score_2023      rank_2023     
+##  Min.   :11.00   Min.   :  1.00  
+##  1st Qu.:29.00   1st Qu.: 42.00  
+##  Median :40.00   Median : 87.00  
+##  Mean   :43.54   Mean   : 87.69  
+##  3rd Qu.:56.00   3rd Qu.:133.00  
+##  Max.   :90.00   Max.   :180.00</code></pre>
 </div>
 <div id="reemplazo-de-valores-no-data-por-na" class="section level3">
 <h3>Reemplazo de Valores “no data” por NA</h3>

@@ -1,2 +1,12 @@
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+# Ignore .tex files
+*.tex
+# Ignore .rdata files
+*.rdata
+# Ignore .Rproj.user files
+*.Rproj.user
+# Ignore .Rhistory files
+*.Rhistory
+# Ignore .RData files
+*.RData

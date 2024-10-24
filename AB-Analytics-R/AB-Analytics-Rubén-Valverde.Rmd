@@ -12,28 +12,27 @@ output:
 
 ## Introducción {#introduccion}
 
-El objetivo principal de este análisis es estudiar la corelación entre la ``inflación`` y el indice de percepcion de corrupción (``CPI``).
+El objetivo principal de este análisis es estudiar la corelación entre la `inflación` y el indice de percepcion de corrupción (`CPI`).
 
 ### Obtención de los Datos {#obtencion-de-los-datos}
 
-Los datos utilizados en este análisis provienen de dos fuentes principales:   
+Los datos utilizados en este análisis provienen de dos fuentes principales:
 
--  **Inflación**: Los datos de inflación anual por país y región se obtuvieron del [Fondo Monetario Internacional](https://www.imf.org/external/datamapper/NGDP_RPCH@WEO/OEMDC/ADVEC/WEOWORLD "Fondo Monetario Internacional").   
+-   **Inflación**: Los datos de inflación anual por país y región se obtuvieron del [Fondo Monetario Internacional](https://www.imf.org/external/datamapper/NGDP_RPCH@WEO/OEMDC/ADVEC/WEOWORLD "Fondo Monetario Internacional").
 
--  **Índice de Percepción de Corrupción (CPI)**: Los datos del CPI se obtuvieron de [transparency.org](https://www.transparency.org/en/ "transparency.org"), una organización sin fines de lucro que publica anualmente el índice de percepción de corrupción.   
+-   **Índice de Percepción de Corrupción (CPI)**: Los datos del CPI se obtuvieron de [transparency.org](https://www.transparency.org/en/ "transparency.org"), una organización sin fines de lucro que publica anualmente el índice de percepción de corrupción.
 
-Una vez obtenidos los distintos datasets se juntaron basandose en dos columnas distintas, según el caso podía ser el ``ISO`` o el ``nombre`` de un país.
-Con frecuencia la ortografía de un país variaba de uno a otro, los pasos que seguí fueron:  
+Una vez obtenidos los distintos datasets se juntaron basandose en dos columnas distintas, según el caso podía ser el `ISO` o el `nombre` de un país. Con frecuencia la ortografía de un país variaba de uno a otro, los pasos que seguí fueron:
 
-- Creación de 2 arrays con los nombres de los paises   
+-   Creación de 2 arrays con los nombres de los paises
 
-- Creación y de 1 array con los nombres que no coinciden  
+-   Creación y de 1 array con los nombres que no coinciden
 
-- En vez de revisarlo manualmente le pase el array a Llama 3.1 varias veces hasta obtener una lista con todos los paises que aparecen en ambos datasets pero con distinto nombre   
+-   En vez de revisarlo manualmente le pase el array a Llama 3.1 varias veces hasta obtener una lista con todos los paises que aparecen en ambos datasets pero con distinto nombre
 
-- Con esa lista se cambia la ortografía del nombre de los paises del segundo dataset a los del primero    
+-   Con esa lista se cambia la ortografía del nombre de los paises del segundo dataset a los del primero
 
-- Se realiza un merge con el nombre del país como columna en común.     
+-   Se realiza un merge con el nombre del país como columna en común.
 
 ```{r librerias, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
 library(tidyr)
@@ -50,6 +49,8 @@ library(ggplot2)
 df <- read.csv("inflation_corruption_1995_2023_Ruben_Valverde.csv")
 head(df[0:6])
 # Nota: El resto de columnas son repeticiones de las columnas 3, 4 y 5 por lo que mostrarlas no aportan más información y empeoran la estética
+
+summary(df[0:6])
 ```
 
 ### Reemplazo de Valores "no data" por NA {#reemplazo-de-valores-no-data-por-na}
@@ -100,26 +101,23 @@ head(df_melted)
 
 summary(df_melted)
 ```
+
 ### Análisis del DataFrame Transformado {#analisis-del-resumen-del-dataframe-transformado}
 
-1. **Inflación**:
-    - La inflación muestra una amplia variabilidad, con valores que van desde negativos hasta extremadamente altos. Esto refleja las diferencias significativas en las tasas de inflación entre los países y a lo largo del tiempo.
-    - La mediana de la inflación es relativamente baja, lo que sugiere que la mayoría de los países tienen tasas de inflación moderadas, aunque hay algunos valores atípicos que elevan la media.
+1.  **Inflación**:
+    -   La inflación muestra una amplia variabilidad, con valores que van desde negativos hasta extremadamente altos. Esto refleja las diferencias significativas en las tasas de inflación entre los países y a lo largo del tiempo.
+    -   La mediana de la inflación es relativamente baja, lo que sugiere que la mayoría de los países tienen tasas de inflación moderadas, aunque hay algunos valores atípicos que elevan la media.
+2.  **Puntuación de Corrupción (CPI)**:
+    -   Los valores pueden ir teóricamente de 0 a 100, aunque en la práctica los valores reales están en un rango más estrecho.
+    -   La puntuación de corrupción también muestra variabilidad, aunque en menor medida que la inflación. Los valores van desde muy bajos (alta percepción de corrupción) hasta relativamente altos (baja percepción de corrupción).
+    -   La mediana de la puntuación de corrupción es moderada, lo que indica que muchos países tienen niveles de corrupción percibidos en un rango medio.
+3.  **Rango de Corrupción**:
+    -   Representa el puesto de un país en el índice de percepción de corrupción (CPI). Siendo el puesto 1 el pais con una menor percepción de corrupción.
+4.  **Años**:
+    -   Los datos abarcan desde 1995 hasta 2023. Esto permite un análisis longitudinal de las tendencias en la inflación y la percepción de corrupción.
 
-2. **Puntuación de Corrupción (CPI)**:
-    - Los valores pueden ir teóricamente de 0 a 100, aunque en la práctica los valores reales están en un rango más estrecho.
-    - La puntuación de corrupción también muestra variabilidad, aunque en menor medida que la inflación. Los valores van desde muy bajos (alta percepción de corrupción) hasta relativamente altos (baja percepción de corrupción).
-    - La mediana de la puntuación de corrupción es moderada, lo que indica que muchos países tienen niveles de corrupción percibidos en un rango medio.
-
-3. **Rango de Corrupción**:
-    - Representa el puesto de un país en el índice de percepción de corrupción (CPI). Siendo el puesto 1 el pais con una menor percepción de corrupción.
-
-4. **Años**:
-    - Los datos abarcan  desde 1995 hasta 2023. Esto permite un análisis longitudinal de las tendencias en la inflación y la percepción de corrupción.
-
-En resumen, el resumen del DataFrame transformado (`df_melted`) destaca la variabilidad en las tasas de inflación y las puntuaciones de corrupción entre los países y a lo largo del tiempo.   
+En resumen, el resumen del DataFrame transformado (`df_melted`) destaca la variabilidad en las tasas de inflación y las puntuaciones de corrupción entre los países y a lo largo del tiempo.\
 Esta variabilidad es crucial para el análisis de la correlación entre estas dos variables, ya que proporciona una base sólida para identificar patrones y tendencias significativas.
-
 
 ## Análisis de la Evolución de la Inflación Promedio Anual por Región {#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region}
 
