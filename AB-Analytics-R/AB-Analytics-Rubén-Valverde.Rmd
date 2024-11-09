@@ -1,7 +1,7 @@
 ---
 title: "ANÁLISIS DE LA CORRELACIÓN ENTRE LA INFLACIÓN Y LA PERCEPCIÓN DE CORRUPCIÓN"
 author: "Rubén Valverde Romero"
-date: "2024-10-21"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   html_document:
     css: style.css
@@ -95,9 +95,9 @@ df_melted <- df %>%
   names_sep = "_") %>%
 select(country, iso, region, year, inflation, score, rank)
 
-# Convertir las columnas 'inflation', 'rank' y 'score' a tipo numérico en el DataFrame df_melted
+# Convertir las columnas 'inflation', 'rank', 'score' y 'year' a tipo numérico en el DataFrame df_melted
 df_melted <- df_melted %>%
-    mutate(across(c(inflation, rank, score), as.numeric))
+    mutate(across(c(inflation, rank, score, year), as.numeric))
 head(df_melted)
 
 summary(df_melted)
@@ -133,11 +133,12 @@ df_avg_inflation <- df_melted %>%
 
 # Nota: Se utilizó la mediana en lugar del promedio para evitar que valores extremos afecten el resultado (Como la inflación de 1995 en Europa Oriental y Asia Central causada por Bulgaria y Venezuela en América)
 
-# Agregar un tema a los gráficos
-theme_set(theme_bw())
 
 # Ajustar el tamaño de los gráficos
-options(repr.plot.width=17, repr.plot.height=7)
+knitr::opts_chunk$set(fig.width=20, fig.height=8)
+
+# Agregar un tema a los gráficos
+theme_set(theme_bw())
 
 # Hacer las letras más grandes y los títulos centrados
 theme_update(
@@ -147,8 +148,11 @@ theme_update(
     legend.title = element_text(size = 16),
     legend.text = element_text(size = 14)
 )
+```
+
+```{r Inflación2, warning=FALSE}
 # Crear el lineplot
-A <- ggplot(df_avg_inflation, aes(x = year, y = inflation, color = region, group = region)) +
+ggplot(df_avg_inflation, aes(x = year, y = inflation, color = region, group = region)) +
     geom_line(size=1.5) +
     scale_y_continuous(limits = c(0, 23)) +
     geom_text(data = df_avg_inflation %>% filter(inflation > 23),
@@ -159,11 +163,6 @@ A <- ggplot(df_avg_inflation, aes(x = year, y = inflation, color = region, group
          x = "Año",
          y = "Inflación Promedio",
          color = "Región")
-```
-
-```{r Gráfico Inflación, echo=FALSE}
-knitr::include_graphics("Inflacion_Anual_Region.png")
-
 ```
 
 ### Análisis del Gráfico de Evolución de la Inflación Mediana Anual por Región {#analisis-del-grafico-de-evolucion-de-la-inflacion-promedio-anual-por-region}
@@ -224,18 +223,13 @@ df_avg_score <- df_avg_score %>% drop_na(score)
 
 ```{r CPI3, warning=FALSE}
 # Crear el lineplot
-A <- ggplot(df_avg_score, aes(x = year, y = score, color = region, group = region)) +
+ggplot(df_avg_score, aes(x = year, y = score, color = region, group = region)) +
     geom_line(size=1.5) +
     geom_point(size=3) +
     labs(title = "Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región",
          x = "Año",
          y = "CPI Promedio",
          color = "Región")
-
-```
-
-```{r Gráfico CPI, echo=FALSE, warning=FALSE}
-knitr::include_graphics("CPI_Region_Año.png")
 
 ```
 
@@ -280,7 +274,7 @@ df_avg <- df_melted %>%
 ```{r Correlación Inflación CPI2}
 # Crear el scatter plot para visualizar la correlación entre inflación y puntuación de corrupción
 # Crear el scatter plot con una línea de regresión única para todas las regiones pero sin el scatter (Quiero una única linea de regresión)
-A <- ggplot(df_avg, aes(x = inflation, y = score, color = region)) +
+ggplot(df_avg, aes(x = inflation, y = score, color = region)) +
     geom_point(size = 3) +
     geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 2.5, color = "black", formula = y ~ x) +
     labs(
@@ -290,10 +284,6 @@ A <- ggplot(df_avg, aes(x = inflation, y = score, color = region)) +
         color = "Región"
     )
  
-```
-
-```{r Gráfico Correlación Inflación CPI, echo=FALSE, warning=FALSE}
-knitr::include_graphics("Correlacion_CPI_Inflacion.png")
 ```
 
 ### Análisis del gráfico de la Correlación entre el CPI y la Inflación {#analisis-del-grafico-correlacion-cpi-inflacion}
@@ -315,12 +305,18 @@ En resumen, el gráfico sugiere que existe una correlación negativa entre la in
 
 ### Coeficiente de Correlación de Spearman's Rank {#spearman}
 
+#### ¿Por qué este coeficiente?
+
+Utilizo este método debido a que los datos no siguen una distribución normal y hay valores extremos.
+
+#### Calculo
+
 ```{r Coeficiente Spearman, echo=TRUE, warning=FALSE}
 # Calcular el coeficiente de correlación de Spearman
 corr_test <- cor.test(df_melted$inflation, df_melted$score,
                       method = "spearman", use = "complete.obs",
                       exact = FALSE)
-# Nota: Utilizo el método de Spearman porque no se una distribución normal y hay valores extremos
+# Nota: 
 # Nota: Me saltaba el error de que no era posible calcular el coeficiente exacto, por lo que lo he puesto en FALSE, es decir, que no se calcula exactamente.
 
 # Definir el nivel de significancia
@@ -351,3 +347,33 @@ El Coeficiente de Correlación de Spearman's Rank calculado entre las columnas `
     -   El **p-valor** obtenido es extremadamente bajo (6.571181e-165), lo que es mucho menor que el nivel de significancia comúnmente utilizado (**α** = 0.05). Esto significa que podemos rechazar la hipótesis nula de que no existe correlación entre la inflación y la puntuación de corrupción. En otras palabras, la correlación observada es estadísticamente significativa.
 
 En resumen, los resultados del Coeficiente de Correlación de Spearman's Rank sugieren que existe una correlación negativa significativa entre la inflación y la puntuación de corrupción en los datos analizados.
+
+#### Correlación por año {#mapa-de-calor-correlacion}
+
+```{r correlacion por año, echo=TRUE, warning=FALSE}
+# Calcular la correlación entre 'inflation' y 'score' por año
+correlation_by_year <- df_melted %>%
+    group_by(year) %>% 
+    summarise(correlation = cor(inflation, score, method = "spearman", use = "complete.obs"))
+# Crear un barplot de la correlación por año
+ggplot(correlation_by_year, aes(x = year)) +
+    geom_bar(aes(y = correlation, fill = correlation), stat = "identity", color = "white") +
+
+    scale_fill_gradient2(low = "#ff0000", high = "#77ff00", mid = "#6600ff", midpoint = -0.15) +
+
+    geom_bar(data = df_melted %>% group_by(year) %>% summarise(median_inflation = median(inflation, na.rm = TRUE)),
+              aes(y = median_inflation / 10), stat = "identity", fill = 'blue', alpha = 0.3) +
+
+        geom_text(data = df_melted %>% group_by(year) %>% summarise(median_inflation = median(inflation, na.rm = TRUE)),
+              aes(y = median_inflation / 10, label = round(median_inflation, 2)), vjust = -0.5, size = 4, color = "#000000") +
+
+    geom_text(aes(y = correlation, label = round(correlation, 2)), vjust = 1.1, size = 4) +
+
+    labs(title = "Correlación entre Inflación y Puntuación de Corrupción por Año",
+         x = "Año",
+         y = "              Correlación          Inflación Mediana (Escala 1:10)",
+         fill = "Correlación") 
+
+```
+
+### Análisis de la Correlación entre Inflación y Puntuación de Corrupción por Año {#analisis-matriz-correlacion}
