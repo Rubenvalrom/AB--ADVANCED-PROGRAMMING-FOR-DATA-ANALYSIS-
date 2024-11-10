@@ -39,6 +39,8 @@ Una vez obtenidos los distintos datasets se juntaron basandose en dos columnas d
 library(tidyr)
 library(dplyr)
 library(ggplot2)
+library(ggthemes)
+library(RColorBrewer)
 ```
 
 ## Limpieza de datos {#limpieza-de-datos}
@@ -144,7 +146,7 @@ theme_update(
     axis.text = element_text(size = 14),
     legend.title = element_text(size = 16),
     legend.text = element_text(size = 14)
-)
+    )
 ```
 
 ```{r Inflación2, warning=FALSE}
@@ -155,7 +157,8 @@ ggplot(df_avg_inflation, aes(x = year, y = inflation, color = region, group = re
     geom_text(data = df_avg_inflation %>% filter(inflation > 23),
               aes(label = round(inflation, 1), y = 23),
               color = "green", size = 3, vjust = -0.5) +
-    geom_point(size=3) +
+    geom_point(size=5) +
+    scale_color_brewer(palette = "Dark2") +
     labs(title = "Evolución de la Inflación Promedio Anual por Región",
          x = "Año",
          y = "Inflación Promedio",
@@ -221,7 +224,8 @@ df_avg_score <- df_avg_score %>% drop_na(score)
 # Crear el lineplot
 ggplot(df_avg_score, aes(x = year, y = score, color = region, group = region)) +
     geom_line(size=1.5) +
-    geom_point(size=3) +
+    geom_point(size=5) +
+    scale_color_brewer(palette = "Dark2") +
     labs(title = "Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región",
          x = "Año",
          y = "CPI Promedio",
@@ -269,15 +273,17 @@ df_avg <- df_melted %>%
 ```{r Correlación Inflación CPI2}
 # Crear el scatter plot para visualizar la correlación entre inflación y puntuación de corrupción
 # Crear el scatter plot con una línea de regresión única para todas las regiones pero sin el scatter (Quiero una única linea de regresión)
-ggplot(df_avg, aes(x = inflation, y = score, color = region)) +
-    geom_point(size = 3) +
+G_inf_corr <- ggplot(df_avg, aes(x = inflation, y = score, color = region)) +
+    geom_point(size = 5) +
     geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 2.5, color = "black", formula = y ~ x) +
+    scale_color_brewer(palette = "Dark2") +
     labs(
         title = "Correlación entre Inflación y Puntuación de Corrupción por País",
         x = "Inflación Mediana",
         y = "Puntuación de Corrupción Promedio",
         color = "Región"
     )
+print(G_inf_corr)
 ```
 
 ### Análisis del gráfico de la Correlación entre el CPI y la Inflación {#analisis-del-grafico-correlacion-cpi-inflacion}
@@ -362,6 +368,8 @@ ggplot(correlation_by_year, aes(x = year)) +
               aes(y = median_inflation / 10, label = round(median_inflation, 2)), vjust = -0.5, size = 4, color = "#000000") +
 
     geom_text(aes(y = correlation, label = round(correlation, 2)), vjust = 1.1, size = 4) +
+    
+    scale_color_brewer(palette = "Dark2") +
 
     labs(title = "Correlación entre Inflación y Puntuación de Corrupción por Año",
          x = "Año",
@@ -386,3 +394,43 @@ ggplot(correlation_by_year, aes(x = year)) +
     -   La intersección de la inflación mediana y la correlación indica que la correlación es más fuerte en los años con inflación más alta.
     -   Esto sugiere que la percepción de corrupción está más influenciada por la inflación en los años de crisis económica.
     -   Excepción en 2022, donde la inflación es alta pero la correlación es baja, aparentemente la población no percibe corrupción en los actos políticos durante la crisis del covid, apesar de que la gestión de la crisis fue muy criticada.
+
+## Clustering de Países por Inflación y Puntuación de Corrupción {#clustering-de-paises-por-inflacion-y-puntuacion-de-corrupcion}
+
+### Preparación de los Datos {#preparacion-de-los-datos}
+
+```{r Clustering1, echo=TRUE, warning=FALSE}
+
+# Seleccionar las columnas 'inflation' y 'score' para el clustering
+df_cluster <- df_avg[, c("inflation", "score")]
+
+# Normalizar los datos para que tengan media 0 y desviación estándar 1
+df_cluster_norm <- scale(na.omit(df_cluster))
+
+# Mostrar los primeros registros del DataFrame normalizado
+head(df_cluster_norm)
+```
+
+### Clustering {#clustering-jerarquico}
+
+```{r Clustering2, echo=TRUE, warning=FALSE}
+# Aplicar el algoritmo de K-means al DataFrame normalizado 'df_cluster_norm'
+# - centers: número de clusters a formar (en este caso, 6, el número de regiones)
+# - nstart: número de veces que el algoritmo de K-means se ejecutará con diferentes centroides iniciales (en este caso, 177, el número de países)
+set.seed(123)
+kmeans_model <- kmeans(df_cluster_norm, centers = 6, nstart = 177)
+
+# Añadir los clusters resultantes del modelo K-means al DataFrame original 'df_avg'
+# Lo convierto a factor para que se muestre en el gráfico como datos categóricos
+df_avg$kmeans_cluster <- as.factor(kmeans_model$cluster)
+print(head(df_avg))
+
+# Graficar los clusters de K-means
+ggplot(df_avg, aes(x = inflation, y = score, color = kmeans_cluster)) +
+    geom_point(size = 5) +
+    scale_color_brewer(palette = "Dark2") +
+    labs(title = "Clustering de Países por Inflación y Puntuación de Corrupción (K-means)",
+        x = "Inflación Mediana",
+        y = "Puntuación de Corrupción Promedio",
+        color = "Cluster (K-means)")
+```
