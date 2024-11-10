@@ -46,7 +46,6 @@ library(ggplot2)
 ### Carga y Visualización del DataFrame {#carga-y-visualizacion-del-dataframe}
 
 ```{r limpieza df1 ,echo=TRUE, warning=FALSE}
-
 df <- read.csv("inflation_corruption_1995_2023_Ruben_Valverde.csv")
 head(df[0:6])
 # Nota: El resto de columnas son repeticiones de las columnas 3, 4 y 5 por lo que mostrarlas no aportan más información y empeoran la estética
@@ -64,13 +63,11 @@ print(paste("Hay un total de", sum(no_data_count), "valores 'no data'"))
 
 # Reemplazar los valores "no data" por NA en todo el DataFrame porque da problemas al conteo
 df[df == "no data"] <- NA
-
 ```
 
 ### Conversión de Columnas a Numérico {#conversion-de-columnas-a-numerico}
 
 ```{r limpieza df3 ,echo=TRUE, warning=FALSE}
-
 # Convertir las columnas de inflación de 1995 a 2023 a valores numéricos
 for (year in 1995:2023) {
   column <- paste("inflation", year, sep = "_")
@@ -135,7 +132,7 @@ df_avg_inflation <- df_melted %>%
 
 
 # Ajustar el tamaño de los gráficos
-knitr::opts_chunk$set(fig.width=20, fig.height=8)
+knitr::opts_chunk$set(fig.width=20, fig.height=6.5)
 
 # Agregar un tema a los gráficos
 theme_set(theme_bw())
@@ -201,7 +198,6 @@ df_melted %>%
 # Multiplico por 10 el CPI de los años 1995 hasta 2011 para que estén en la misma escala que los años posteriores
 df_melted <- df_melted %>%
     mutate(score = ifelse(year >= 1995 & year <= 2011, score * 10, score))
-
 ```
 
 ### Calculo del CPI anual por región {#calculo-del-cpi-anual-por-region}
@@ -230,7 +226,6 @@ ggplot(df_avg_score, aes(x = year, y = score, color = region, group = region)) +
          x = "Año",
          y = "CPI Promedio",
          color = "Región")
-
 ```
 
 ### Análisis del Gráfico de Evolución de la Puntuación de la Percepción de Corrupción (CPI) Promedio Anual por Región {#analisis-del-grafico-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
@@ -283,7 +278,6 @@ ggplot(df_avg, aes(x = inflation, y = score, color = region)) +
         y = "Puntuación de Corrupción Promedio",
         color = "Región"
     )
- 
 ```
 
 ### Análisis del gráfico de la Correlación entre el CPI y la Inflación {#analisis-del-grafico-correlacion-cpi-inflacion}
@@ -348,7 +342,7 @@ El Coeficiente de Correlación de Spearman's Rank calculado entre las columnas `
 
 En resumen, los resultados del Coeficiente de Correlación de Spearman's Rank sugieren que existe una correlación negativa significativa entre la inflación y la puntuación de corrupción en los datos analizados.
 
-#### Correlación por año {#mapa-de-calor-correlacion}
+### Visualización de la Correlación e Inflación mediana por Año {#analisis-matriz-correlacion}
 
 ```{r correlacion por año, echo=TRUE, warning=FALSE}
 # Calcular la correlación entre 'inflation' y 'score' por año
@@ -373,7 +367,22 @@ ggplot(correlation_by_year, aes(x = year)) +
          x = "Año",
          y = "              Correlación          Inflación Mediana (Escala 1:10)",
          fill = "Correlación") 
-
 ```
 
-### Análisis de la Correlación entre Inflación y Puntuación de Corrupción por Año {#analisis-matriz-correlacion}
+#### Analisis del Gráfico de la Correlación e Inflación mediana por Año
+
+1.  **Correlación:**
+    -   Los colores rojos indican una fuerte correlación negativa, mientras que los colores azulados indican una falta de correlación.
+    -   Se observa una tendencia general a la baja en la correlación entre la inflación y la puntuación de corrupción a lo largo de los años pero con bastante varianza.
+    -   Por lo general la correlación aumenta a medida que la inflación tambien aumenta, lo que sugiere que la población percibe más corrupción cuando se devalua la moneda.
+2.  **Inflación Mediana:**
+    -   La inflación mediana se muestra en azul claro en la parte inferior del gráfico.
+    -   Se observa un claro patrón de subida y bajada a lo largo de los años similar a una onda.
+    -   Picos en 1995, 2008 y 2022.
+    -   Minimos en 1999, 2001 y 2005.
+    -   Ligera tendencia a la baja, maximos y minimos locales cada vez más bajos.
+    -   El ciclo tiene una frecuencia de 13-14 años.
+3.  **Interpretación:**
+    -   La intersección de la inflación mediana y la correlación indica que la correlación es más fuerte en los años con inflación más alta.
+    -   Esto sugiere que la percepción de corrupción está más influenciada por la inflación en los años de crisis económica.
+    -   Excepción en 2022, donde la inflación es alta pero la correlación es baja, aparentemente la población no percibe corrupción en los actos políticos durante la crisis del covid, apesar de que la gestión de la crisis fue muy criticada.
