@@ -377,6 +377,8 @@ ggplot(correlation_by_year, aes(x = year)) +
          fill = "Correlación") 
 ```
 
+**Nota**: El CPI promedio anual no tiene apenas varianza, situandose entre 40 y 43,5 puntos salvo en 1995 que llegó a alcanzar los 60 puntos, que fueron bajando paulatinamente hasta el año 2003 donde comienza la estabilidad.
+
 #### Analisis del Gráfico de la Correlación e Inflación mediana por Año
 
 1.  **Correlación:**
@@ -426,7 +428,15 @@ df_avg$kmeans_cluster <- as.factor(kmeans_model$cluster)
 print(head(df_avg))
 
 # Graficar los clusters de K-means
-ggplot(df_avg, aes(x = inflation, y = score, color = kmeans_cluster)) +
+ggplot(df_avg, aes(x = inflation, y = score, color = kmeans_cluster, shape = region)) +
+    geom_point(size = 5) +
+    scale_color_brewer(palette = "Dark2") +
+    scale_shape_manual(values = c(16, 17, 18, 19, 15, 21)) +
+    labs(title = "Clustering de Países por Inflación y Puntuación de Corrupción (K-means)",
+        x = "Inflación Mediana",
+        y = "Puntuación de Corrupción Promedio",
+        color = "Cluster (K-means)",
+        shape = "Región") +
     geom_point(size = 5) +
     scale_color_brewer(palette = "Dark2") +
     labs(title = "Clustering de Países por Inflación y Puntuación de Corrupción (K-means)",
