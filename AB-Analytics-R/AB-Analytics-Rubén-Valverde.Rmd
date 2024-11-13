@@ -416,19 +416,21 @@ head(df_cluster_norm)
 ### Clustering {#clustering-jerarquico}
 
 ```{r Clustering2, echo=TRUE, warning=FALSE}
+
 # Aplicar el algoritmo de K-means al DataFrame normalizado 'df_cluster_norm'
 # - centers: número de clusters a formar (en este caso, 6, el número de regiones)
 # - nstart: número de veces que el algoritmo de K-means se ejecutará con diferentes centroides iniciales (en este caso, 177, el número de países)
-set.seed(123)
+
+set.seed(2706)
+
 kmeans_model <- kmeans(df_cluster_norm, centers = 6, nstart = 177)
 
 # Añadir los clusters resultantes del modelo K-means al DataFrame original 'df_avg'
 # Lo convierto a factor para que se muestre en el gráfico como datos categóricos
 df_avg$kmeans_cluster <- as.factor(kmeans_model$cluster)
-print(head(df_avg))
 
 # Graficar los clusters de K-means
-ggplot(df_avg, aes(x = inflation, y = score, color = kmeans_cluster, shape = region)) +
+ggplot(df_avg, aes(x = inflation, y = score, color = kmeans_cluster, shape = region))+
     geom_point(size = 5) +
     scale_color_brewer(palette = "Dark2") +
     scale_shape_manual(values = c(16, 17, 18, 19, 15, 21)) +
@@ -436,11 +438,51 @@ ggplot(df_avg, aes(x = inflation, y = score, color = kmeans_cluster, shape = reg
         x = "Inflación Mediana",
         y = "Puntuación de Corrupción Promedio",
         color = "Cluster (K-means)",
-        shape = "Región") +
-    geom_point(size = 5) +
-    scale_color_brewer(palette = "Dark2") +
-    labs(title = "Clustering de Países por Inflación y Puntuación de Corrupción (K-means)",
-        x = "Inflación Mediana",
-        y = "Puntuación de Corrupción Promedio",
-        color = "Cluster (K-means)")
+        shape = "Región")
+```
+
+## Me he quedado sin ideas asi que le meto otra columna al data set
+
+```{r pib 1, echo=TRUE, warning=FALSE}
+df_pib <- read.csv('world_development_data_interpolated.csv')[, 1:2]
+print(head(df_pib))
+# Filtrar el DataFrame para eliminar las filas cuyo año sea anterior a 1995
+df_pib <- df_pib %>% filter(Year >= 1995)
+# Crear una lista de correspondencias entre los nombres de países en ambos datasets
+country_corrections <- c(
+    "United States" = "United States of America",
+    "Russia" = "Russian Federation",
+    "South Korea" = "Korea, Rep.",
+    "North Korea" = "Korea, Dem. People's Rep.",
+    "Iran" = "Iran, Islamic Rep.",
+    "Egypt" = "Egypt, Arab Rep.",
+    "Vietnam" = "Viet Nam",
+    "Syria" = "Syrian Arab Republic",
+    "Venezuela" = "Venezuela, RB",
+    "Yemen" = "Yemen, Rep.",
+    "Gambia" = "Gambia, The",
+    "Congo (Kinshasa)" = "Congo, Dem. Rep.",
+    "Congo (Brazzaville)" = "Congo, Rep.",
+    "Tanzania" = "Tanzania, United Rep.",
+    "Laos" = "Lao PDR",
+    "Kyrgyzstan" = "Kyrgyz Republic",
+    "Slovakia" = "Slovak Republic",
+    "Brunei" = "Brunei Darussalam",
+    "Bahamas" = "Bahamas, The",
+    "Congo" = "Congo, Rep.",
+    "Côte d'Ivoire" = "Cote d'Ivoire",
+    "Hong Kong" = "Hong Kong SAR, China",
+    "Korea (South)" = "Korea, Rep.",
+    "Saint Lucia" = "St. Lucia",
+    "Saint Vincent and the Grenadines" = "St. Vincent and the Grenadines",
+    "Taiwan, China" = "Taiwan" 
+)
+
+# Reemplazar los nombres de países en df_melted
+df_melted$country <- recode(df_melted$country, !!!country_corrections)
+
+# Reemplazar los nombres de países en df_pib
+df_pib$Country <- recode(df_pib$Country, !!!country_corrections)
+# Unir el DataFrame de inflación y corrupción con el DataFrame de PIB
+df_melted <- df_melted %>% inner_join(df_pib, by = c("country" = "Country", "year" = "Year"))
 ```
