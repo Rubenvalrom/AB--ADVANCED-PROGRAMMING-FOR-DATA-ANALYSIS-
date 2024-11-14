@@ -89,18 +89,41 @@ print(paste("Hay un total de", sum(is.na(df)), "valores nulos"))
 ```{r limpieza df5 ,echo=TRUE, warning=FALSE}
 # Transformar el DataFrame de formato ancho a formato largo para poder analizar los datos de inflación, puntuación y rango a lo largo del tiempo posteriormente
 df_melted <- df %>%
-  pivot_longer(cols = starts_with("inflation_") | starts_with("score_") | starts_with("rank_"),
+  pivot_longer(cols = starts_with("inflation_") | starts_with("score_"),
   names_to = c(".value", "year"),
   names_sep = "_") %>%
-select(country, iso, region, year, inflation, score, rank)
+select(country, iso, region, year, inflation, score) #Nota el ranking no se llega a utilizar en este análisis asi que lo elimino
 
-# Convertir las columnas 'inflation', 'rank', 'score' y 'year' a tipo numérico en el DataFrame df_melted
+# Convertir las columnas 'inflation', 'score' y 'year' a tipo numérico en el DataFrame df_melted
 df_melted <- df_melted %>%
-    mutate(across(c(inflation, rank, score, year), as.numeric))
+    mutate(across(c(inflation, score, year), as.numeric))
+    df_melted <- df_melted %>% arrange(year, country)
 head(df_melted)
 
 summary(df_melted)
 ```
+### Descripción de los datos del DataFrame Transformado {#descripcion-del-dataframe-transformado}
+
+1.  **País**:
+    -   Nombre del país al que pertenecen los datos.
+    -   Tipo de dato: Carácter.
+2.  **ISO**:
+    -   Código de país de tres letras según la norma ISO 3166-1.
+    -   Tipo de dato: Carácter.
+3.  **Región**:
+    -   Región geográfica a la que pertenece el país.
+    -   Tipo de dato: Carácter.
+4. **Año**:
+    -   Año al que corresponden los datos de inflación y puntuación de corrupción, va de 1995 a 2023.
+    -   Tipo de dato: Numérico.
+5.  **Inflación**:
+    -   Tasa de inflación anual del país en un año determinado.
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa la perdida de poder adquisitivo de los ciudadanos.
+6.  **Puntuación de Corrupción (CPI)**:
+    -   Índice de Percepción de Corrupción (CPI) del país en un año determinado.
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa la percepción de corrupción en el sector público de un país en una escala de 0 a 100, donde 0 indica una alta percepción de corrupción y 100 indica una baja percepción de corrupción.
 
 ### Análisis del DataFrame Transformado {#analisis-del-resumen-del-dataframe-transformado}
 
@@ -441,13 +464,47 @@ ggplot(df_avg, aes(x = inflation, y = score, color = kmeans_cluster, shape = reg
         shape = "Región")
 ```
 
-## Me he quedado sin ideas asi que le meto otra columna al data set
+## Ampliación del dataset con el PIB {#ampliacion-dataset-pib}
 
 ```{r pib 1, echo=TRUE, warning=FALSE}
-df_pib <- read.csv('world_development_data_interpolated.csv')[, 1:2]
-print(head(df_pib))
+df_pib <- read.csv('world_development_data_interpolated.csv')[, c(1, 2, 9, 10, 29, 32)]
 # Filtrar el DataFrame para eliminar las filas cuyo año sea anterior a 1995
 df_pib <- df_pib %>% filter(Year >= 1995)
+```
+### Descripción de los Datos {#descripcion-datos-df_pib}
+
+El DataFrame `df_pib` contiene datos de desarrollo mundial, específicamente relacionados con el Producto Interno Bruto (PIB) y otros indicadores económicos. A continuación se presenta una descripción de las columnas incluidas en este DataFrame:
+
+1. **Country**:
+    - Nombre del país al que pertenecen los datos.
+    - Tipo de dato: Carácter.
+
+2. **Year**:
+    - Año en el que se registraron los datos.
+    - Tipo de dato: Numérico.
+
+3. **GDP**:
+    - Producto Interno Bruto (PIB) en dólares estadounidenses.
+    - Tipo de dato: Numérico.
+    - Descripción: Representa el valor total de todos los bienes y servicios producidos en un país en un año determinado.
+  
+4. **GDP Growth**:
+    - Tasa de crecimiento del Producto Interno Bruto (PIB).
+    - Tipo de dato: Numérico.
+    - Descripción: Representa el cambio porcentual en el PIB de un año a otro.
+
+5. **Population, total**:
+    - Población total del país.
+    - Tipo de dato: Numérico.
+
+6. **TaxRevenue**:
+    - Ingresos fiscales totales del país.
+    - Tipo de dato: Numérico.
+    - Descripción: Representa la cantidad total de ingresos recaudados por el estado a través de impuestos, expresado en % del PIB. No tiene en cuenta el endeudamiento.
+  
+A continuación se muestra un resumen estadístico de las columnas del DataFrame `df_pib`:
+```{r pib 2}
+print(summary(df_pib))
 # Crear una lista de correspondencias entre los nombres de países en ambos datasets
 country_corrections <- c(
     "United States" = "United States of America",
@@ -485,4 +542,94 @@ df_melted$country <- recode(df_melted$country, !!!country_corrections)
 df_pib$Country <- recode(df_pib$Country, !!!country_corrections)
 # Unir el DataFrame de inflación y corrupción con el DataFrame de PIB
 df_melted <- df_melted %>% inner_join(df_pib, by = c("country" = "Country", "year" = "Year"))
+head(df_melted)
 ```
+
+## Análisis de la evolución del PIB y PIB per cápita por región {#analisis-evolucion-pib}
+
+```{r pib 3}
+# Calcular el PIB y PIB per cápita promedio anual por región
+df_avg_pib <- df_melted %>%
+    group_by(region, year) %>%
+    summarise(GDP = mean(GDP, na.rm = TRUE),
+              GDPGrowth = mean(GDPGrowth, na.rm = TRUE), .groups = "drop") %>%
+    ungroup()
+head(df_avg_pib)
+
+# Filtrar las regiones WE/EU, AP, MENA y AME para el lineplot
+df_avg_pib_we_eu_ap <- df_avg_pib %>% filter(region %in% c("WE/EU", "AP", "AME"))
+# Crear el lineplot para la evolución del PIB de WE/EU, AP y AME
+ggplot(df_avg_pib_we_eu_ap, aes(x = year, y = GDP, color = region, group = region)) +
+    geom_line(size = 1.5) +
+    geom_point(size = 5) +
+    scale_color_brewer(palette = "Dark2") +
+    labs(title = "Evolución del PIB de WE/EU, AP, AME, MENA, SSA y ECA",
+         x = "",
+         y = "",
+         color = "Región")
+```	
+
+
+```{r pib 4 , echo=FALSE, warning=FALSE}
+df_avg_pib_mena <- df_avg_pib %>% filter(region %in% c("MENA"))
+# Crear el lineplot para la evolución del PIB de MENA
+ggplot(df_avg_pib_mena, aes(x = year, y = GDP, color = region, group = region)) +
+    geom_line(size = 1.5) +
+    geom_point(size = 5) +
+    scale_color_manual(values = brewer.pal(4, "Dark2")[4:4]) +
+    labs(y = "PIB (US$)",
+         x = "",
+         color = "Región")
+
+
+# Filtrar las regiones SSA y ECA para el lineplot
+df_avg_pib_ssa_eca <- df_avg_pib %>% filter(region %in% c("SSA", "ECA"))
+
+# Crear el lineplot para la evolución del PIB de SSA y ECA
+ggplot(df_avg_pib_ssa_eca, aes(x = year, y = GDP, color = region, group = region)) +
+    geom_line(size = 1.5) +
+    geom_point(size = 5) +
+    scale_color_manual(values = brewer.pal(7, "Dark2")[5:7]) +
+    labs(x = "Año",
+         y = "",
+         color = "Región")
+```
+
+### Representación del crecimiento del PIB por región  
+
+```{r pib 5}	
+# Crear el lineplot para la evolución del PIB per cápita mundial
+ggplot(df_avg_pib, aes(x = year, y = GDPGrowth, color = region, group = region)) +
+    geom_line(size = 1.5) +
+    geom_point(size = 5) +
+    scale_color_brewer(palette = "Dark2") +
+    labs(title = "Evolución del PIB per cápita Mundial por Región (1995-2023)",
+         x = "Año",
+         y = "Crecimiento del PIB (%)",
+         color = "Región")
+```	
+
+### Análisis de los Gráficos de la Evolución del PIB por Región
+
+1. **Tendencias Generales**
+    -  Todas las regiones muestran un crecimiento en el PIB a lo largo de los años, con algunas fluctuaciones.
+    -  Se observa un impacto significativo de la crisis financiera de 2008 y el covid del 2021 en el crecimiento del PIB en todas las regiones.
+  
+2.  **Grupo 1**:
+    -   Se compone de Europa Occidental y la Unión Europea (WE/EU), Asia-Pacífico (AP) y América(AME).
+    -   Son las regiones más ricas
+    -   De 1995 a 2008 las 3 regiones crecieron de forma similar
+    -   A partir de 2008:
+        -   WE/EU se estancó
+        -   AP que previamente estaba un poco rezagada superó a AME y a WE/EU con crecimiento elevado
+        -   AME creció de forma moderada
+
+3.  **Grupo 2**:
+    -   Se compone de Medio Oriente y Norte de África (MENA).
+    -   Ha experimentado un crecimiento elevado, similar al de AP.
+
+4.  **Grupo 3**:
+    -   Se compone de Europa Oriental y Asia Central (ECA) y África Subsahariana (SSA).
+    -   Se caracterizan por ser las regiones con menos poder adquisitivo.
+    -   Desde 1995 hasta 2001 apenas hubo crecimiento e incluso decrecimiento en ECA.
+    -   Despues del 2001 Se observa un crecimiento acelerado en el PIB con bastantes fluctuaciones
