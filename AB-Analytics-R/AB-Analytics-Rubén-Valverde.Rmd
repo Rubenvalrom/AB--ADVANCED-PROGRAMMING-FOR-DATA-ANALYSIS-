@@ -41,6 +41,7 @@ library(dplyr)
 library(ggplot2)
 library(ggthemes)
 library(RColorBrewer)
+library(ggcorrplot)
 ```
 
 ## Limpieza de datos {#limpieza-de-datos}
@@ -464,6 +465,15 @@ ggplot(df_avg, aes(x = inflation, y = score, color = kmeans_cluster, shape = reg
         shape = "Región")
 ```
 
+### Análisis del Gráfico de Clustering de Países por Inflación y Puntuación de Corrupción {#analisis-del-grafico-de-clustering-de-paises-por-inflacion-y-puntuacion-de-corrupcion}
+
+1.  **Clusters**:
+    -   Se han formado 6 clusters distintos, 1 por cada región, cada uno representado por un color diferente.
+    -   Los clusters se han formado en función de la similitud en los valores de inflación y puntuación de corrupción de los países.
+2.  **Distribución**:
+    -   Los clusters no apenas se parcen a las regiones, lo que indica que la inflación y la corrupción no siguen un patrón geográfico.
+
+
 ## Ampliación del dataset con el PIB {#ampliacion-dataset-pib}
 
 ```{r pib 1, echo=TRUE, warning=FALSE}
@@ -545,7 +555,7 @@ df_melted <- df_melted %>% inner_join(df_pib, by = c("country" = "Country", "yea
 head(df_melted)
 ```
 
-## Análisis de la evolución del PIB y PIB per cápita por región {#analisis-evolucion-pib}
+## Análisis de la evolución del PIB por región {#analisis-evolucion-pib}
 
 ```{r pib 3}
 # Calcular el PIB y PIB per cápita promedio anual por región
@@ -633,3 +643,100 @@ ggplot(df_avg_pib, aes(x = year, y = GDPGrowth, color = region, group = region))
     -   Se caracterizan por ser las regiones con menos poder adquisitivo.
     -   Desde 1995 hasta 2001 apenas hubo crecimiento e incluso decrecimiento en ECA.
     -   Despues del 2001 Se observa un crecimiento acelerado en el PIB con bastantes fluctuaciones
+
+## Análisis del Ingreso Fiscal por región {#analisis-evolucion-ingreso-fiscal}
+
+```{r ingreso fiscal 1, warning=FALSE}
+
+# Filtrar el DataFrame para eliminar valores imposibles
+df_tax_region <- df_melted %>% filter(TaxRevenue > 0 & TaxRevenue < 100) %>% drop_na(TaxRevenue) %>% select(region, year, TaxRevenue)
+
+# Boxplot para comparar el Ingreso Fiscal por región
+ggplot(df_tax_region, aes(x = region, y = TaxRevenue, fill = region)) +
+  geom_boxplot() +
+  ylim(-2, 65) +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(title = "Comparación del Ingreso Fiscal por Región",
+       x = "Región",
+       y = "Ingreso Fiscal") +
+  theme(legend.position = "none")
+
+# Calcular la mediana del Ingreso Fiscal
+median_tax <- median(df_tax_region$TaxRevenue, na.rm = TRUE)
+
+# Distribución del Ingreso Fiscal por región  
+ggplot(df_tax_region, aes(x = TaxRevenue)) +
+geom_histogram(bins=40, fill = '#56596d', color = '#222222') +
+  xlim(0,40) +
+  scale_fill_brewer(palette = "Dark2") +
+  geom_vline(aes(xintercept = median_tax), color = "red", linetype = "dashed", size = 1) +
+  labs(title = "Distribución del Ingreso Fiscal por Región",
+       x = "Ingreso Fiscal",
+       y = "Frecuencia")
+```
+
+### Análisis de los Gráficos del Ingreso Fiscal por Región
+
+1. **Boxplot**
+    -  Se observa una gran variabilidad en el ingreso fiscal por región.
+    -  Europa Occidental y la Unión Europea (WE/EU) tiene los ingresos fiscales más altos, con una mediana en torno al 22% del PIB.
+    -  America (AME), Asia-Pacifico (AP) y Europa Oriental y Asia Central (ECA) tienen los ingresos fiscales más bajos con poca variabilidad.
+        -  AME y AP tienen una mediana cercana al 13,5% del PIB.
+        -  ECA tiene una mediana cercana al 17% del PIB.
+    -  Medio Oriente y Norte de África (MENA) tiene una mediana alta dentro de su rango (15,5%) pero con muchos valores por debajo de la mediana.
+    -  A África Subsahariana (SSA) le ocurre lo contrario, con una mediana baja (14%) pero con muchos valores por encima de la mediana.
+
+
+2. **Histograma**
+    -  La distribución del ingreso fiscal por región muestra una asimetría positiva y un ligero sesgo hacia la derecha.
+    -  La mediana del ingreso fiscal se sitúa en torno al 16% del PIB.
+    -  Se observan valores atípicos en la distribución, tanto en valores bajos como altos.
+
+## Mapa de Calor de Correlaciones {#mapa-de-calor-correlaciones}
+```{r heatmap 1, echo=TRUE, warning=FALSE}
+
+# Seleccionar las columnas relevantes para el mapa de calor
+df_heatmap <- df_melted %>%
+  select(inflation, score, GDP, GDPGrowth, PopTotal, TaxRevenue) %>%
+  drop_na()
+
+# Calcular la matriz de correlación
+cor_matrix <- cor(df_heatmap, method = "spearman", use = "complete.obs")
+
+# Crear el mapa de calor
+heatmap_plot <- ggcorrplot(cor_matrix,
+                           method = "circle",
+                           type = "upper",
+                           lab = TRUE,
+                           lab_size = 4,
+                           colors = c("#ff0000", "#6fff00", "#6600ff"),
+                           title = "Mapa de Calor de Correlaciones")
+
+# Guardar el mapa de calor como un archivo PNG
+# ggsave("heatmap.jpg", plot = heatmap_plot, width = 14, height = 14, units = "cm")
+knitr::include_graphics("heatmap.jpg")
+
+```
+
+### Análisis del Mapa de Calor de Correlaciones
+
+1. **Correlaciones Positivas**
+    -  La correlación entre la `puntuación de corrupción` y los `ingresos fiscales` es muy positiva, lo que indica que los países con mayores presiones fiscales tienden a tener una menor percepción de corrupción.
+    -  Como se esperaba la correlación entre el `PIB` y la `población total` es muy fuerte.
+    -  `Crecimiento del PIB` e `inflación`, lo que indica que la generación de riqueza provoca un poco de inflación.
+    -  `CPI` y `PIB`, lo que indica que a mayor producción menor percepción de corrupción.
+
+2. **Correlaciones Negativas**
+    - `Ingreso fiscal` e `Inflación`, lo que indica que los países con inflacion recurrente tienden a ingresar un porcentaje menor del PIB.
+    - `Inflación` y `PIB`, lo que indica que a mayor inflación menor producción.
+    - `CPI` y `Población total`, lo que indica que a mayor población menor percepción de corrupción.
+    - `CPI` y `Crecimiento del PIB`, lo que indica que a mayor crecimiento menor percepción de corrupción.
+    - `PIB` y `Crecimiento del PIB`, lo que indica que cuanto mayor es el PIB más dificil es mantener el ritmo de crecimiento.
+    - `Crecimiento del PIB` e `Ingresos fiscales`, lo que indica que a mayor crecimiento menor presión fiscal.
+    - Fuerte correlación entre `Población total` e `Ingresos fiscales`, lo que indica que a mayor población menor presión fiscal.
+    
+3. **Correlaciones Neutras**
+    - Las siguientes variables no tienes apenas correlación entre ellas:
+        - `Inflación` y `Población total`.
+        - `PIB` e `Ingresos fiscales`.
+        - `Crecimiento del PIB` y `Población total`.
