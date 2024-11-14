@@ -484,7 +484,7 @@ df_pib <- df_pib %>% filter(Year >= 1995)
 ### Descripción de los Datos {#descripcion-datos-df_pib}
 
 El DataFrame `df_pib` contiene datos de desarrollo mundial, específicamente relacionados con el Producto Interno Bruto (PIB) y otros indicadores económicos. A continuación se presenta una descripción de las columnas incluidas en este DataFrame:
-
+Fuente: [Kaggle](https://www.kaggle.com/datasets/samybaladram/databank-world-development-indicators)
 1. **Country**:
     - Nombre del país al que pertenecen los datos.
     - Tipo de dato: Carácter.
