@@ -13,27 +13,28 @@ output:
 
 ## Introducción {#introduccion}
 
-El objetivo principal de este análisis es estudiar la corelación entre la `inflación` y el indice de percepcion de corrupción (`CPI`).
+Es habitual escuchar que un poco de inflación es símbolo de crecimiento económico, pero ¿es esto cierto? o es una artimaña de los politicos
+para engrosar el tamaño del estado con este impuesto implícito.
 
-### Obtención de los Datos {#obtencion-de-los-datos}
+En este informe se tiene como objetivo analizar que relación tiene la inflación con el crecimiento de la productividad, del estado y de la
+corrupción que perciben los ciudadanos.
 
-Los datos utilizados en este análisis provienen de dos fuentes principales:
+### Origen de los Datos {#obtencion-de-los-datos}
 
--   **Inflación**: Los datos de inflación anual por país y región se obtuvieron del [Fondo Monetario Internacional](https://www.imf.org/external/datamapper/NGDP_RPCH@WEO/OEMDC/ADVEC/WEOWORLD "Fondo Monetario Internacional").
+Los datos utilizados en este análisis provienen de 3 fuentes principales:
 
--   **Índice de Percepción de Corrupción (CPI)**: Los datos del CPI se obtuvieron de [transparency.org](https://www.transparency.org/en/ "transparency.org"), una organización sin fines de lucro que publica anualmente el índice de percepción de corrupción.
+-   **Inflación**: Los datos de inflación anual por país y región se obtuvieron del [Fondo Monetario
+    Internacional](https://www.imf.org/external/datamapper/NGDP_RPCH@WEO/OEMDC/ADVEC/WEOWORLD "Fondo Monetario Internacional").
 
-Una vez obtenidos los distintos datasets se juntaron basandose en dos columnas distintas, según el caso podía ser el `ISO` o el `nombre` de un país. Con frecuencia la ortografía de un país variaba de uno a otro, los pasos que seguí fueron:
+-   **Índice de Percepción de Corrupción (CPI)**: Los datos del CPI se obtuvieron de
+    [transparency.org](https://www.transparency.org/en/ "transparency.org"), una organización sin fines de lucro que publica anualmente el
+    índice de percepción de corrupción.
 
--   Creación de 2 arrays con los nombres de los paises
+-   **PIB**: Los datos que tratan sobre producto interior bruto provienen de
+    [Kaggle](https://www.kaggle.com/datasets/samybaladram/databank-world-development-indicators).
 
--   Creación y de 1 array con los nombres que no coinciden
-
--   En vez de revisarlo manualmente le pase el array a Llama 3.1 varias veces hasta obtener una lista con todos los paises que aparecen en ambos datasets pero con distinto nombre
-
--   Con esa lista se cambia la ortografía del nombre de los paises del segundo dataset a los del primero
-
--   Se realiza un merge con el nombre del país como columna en común.
+-   **Presión Fiscal**: Los datos de presión fiscal provienen del [Fondo Monetario
+    Internacional](https://www.imf.org/external/datamapper/rev@FPP/USA/FRA/JPN/GBR/SWE/ESP/ITA/ZAF/IND/URY/VEN "Fondo Monetario Internacional").
 
 ```{r librerias, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
 library(tidyr)
@@ -42,11 +43,31 @@ library(ggplot2)
 library(ggthemes)
 library(RColorBrewer)
 library(ggcorrplot)
+library(readxl)
+library(plotly)
+
 ```
 
 ## Limpieza de datos {#limpieza-de-datos}
 
-### Carga y Visualización del DataFrame {#carga-y-visualizacion-del-dataframe}
+### Obtención del DataFrame de Inflación y CPI
+
+Primero se descargaron los datasets de CPI de todos los años disponibles y el de Inflación, que afortunadamente incluia todos los años.
+Posteriormente se unieron basandose en dos columnas distintas, según el caso podía ser el `ISO` o el `nombre` del país. Con frecuencia la
+ortografía de un país variaba de uno a otro, los pasos que seguí para resolver la problemática fueron:
+
+-   Creación de 2 arrays con los nombres de los paises
+
+-   Creación y de 1 array con los nombres que no coinciden
+
+-   En vez de revisarlo manualmente le pase el array a Llama 3.1 varias veces hasta obtener una lista con todos los paises que aparecen en
+    ambos datasets pero con distinto nombre
+
+-   Con esa lista se cambia la ortografía del nombre de los paises del segundo dataset a los del primero
+
+-   Se realiza un merge con el nombre del país como columna en común.
+
+### Carga y Visualización del DataFrame de la Inflación y CPI {#carga-y-visualizacion-del-dataframe}
 
 ```{r limpieza df1 ,echo=TRUE, warning=FALSE}
 df <- read.csv("inflation_corruption_1995_2023_Ruben_Valverde.csv")
@@ -56,7 +77,7 @@ head(df[0:6])
 summary(df[0:6])
 ```
 
-### Reemplazo de Valores "no data" por NA {#reemplazo-de-valores-no-data-por-na}
+#### Reemplazo de Valores "no data" por NA {#reemplazo-de-valores-no-data-por-na}
 
 ```{r limpieza df2 ,echo=TRUE, warning=FALSE}
 # Contar valores "no data" en cada columna
@@ -68,7 +89,7 @@ print(paste("Hay un total de", sum(no_data_count), "valores 'no data'"))
 df[df == "no data"] <- NA
 ```
 
-### Conversión de Columnas a Numérico {#conversion-de-columnas-a-numerico}
+#### Conversión de Columnas a Numérico {#conversion-de-columnas-a-numerico}
 
 ```{r limpieza df3 ,echo=TRUE, warning=FALSE}
 # Convertir las columnas de inflación de 1995 a 2023 a valores numéricos
@@ -78,14 +99,14 @@ for (year in 1995:2023) {
 }
 ```
 
-### Conteo de valores NA {#conteo-de-valores-na}
+#### Conteo de valores NA {#conteo-de-valores-na}
 
 ```{r limpieza df4 ,echo=TRUE, warning=FALSE}
 # Contar y mostrar el número de valores nulos por columna
 print(paste("Hay un total de", sum(is.na(df)), "valores nulos"))
 ```
 
-### Formateo del DataFrame {#formateo-del-dataFrame}
+#### Formateo del DataFrame {#formateo-del-dataFrame}
 
 ```{r limpieza df5 ,echo=TRUE, warning=FALSE}
 # Transformar el DataFrame de formato ancho a formato largo para poder analizar los datos de inflación, puntuación y rango a lo largo del tiempo posteriormente
@@ -100,421 +121,20 @@ df_melted <- df_melted %>%
     mutate(across(c(inflation, score, year), as.numeric))
     df_melted <- df_melted %>% arrange(year, country)
 head(df_melted)
-
-summary(df_melted)
-```
-### Descripción de los datos del DataFrame Transformado {#descripcion-del-dataframe-transformado}
-
-1.  **País**:
-    -   Nombre del país al que pertenecen los datos.
-    -   Tipo de dato: Carácter.
-2.  **ISO**:
-    -   Código de país de tres letras según la norma ISO 3166-1.
-    -   Tipo de dato: Carácter.
-3.  **Región**:
-    -   Región geográfica a la que pertenece el país.
-    -   Tipo de dato: Carácter.
-4. **Año**:
-    -   Año al que corresponden los datos de inflación y puntuación de corrupción, va de 1995 a 2023.
-    -   Tipo de dato: Numérico.
-5.  **Inflación**:
-    -   Tasa de inflación anual del país en un año determinado.
-    -   Tipo de dato: Numérico.
-    -   Descripción: Representa la perdida de poder adquisitivo de los ciudadanos.
-6.  **Puntuación de Corrupción (CPI)**:
-    -   Índice de Percepción de Corrupción (CPI) del país en un año determinado.
-    -   Tipo de dato: Numérico.
-    -   Descripción: Representa la percepción de corrupción en el sector público de un país en una escala de 0 a 100, donde 0 indica una alta percepción de corrupción y 100 indica una baja percepción de corrupción.
-
-### Análisis del DataFrame Transformado {#analisis-del-resumen-del-dataframe-transformado}
-
-1.  **Inflación**:
-    -   La inflación muestra una amplia variabilidad, con valores que van desde negativos hasta extremadamente altos. Esto refleja las diferencias significativas en las tasas de inflación entre los países y a lo largo del tiempo.
-    -   La mediana de la inflación es relativamente baja, lo que sugiere que la mayoría de los países tienen tasas de inflación moderadas, aunque hay algunos valores atípicos que elevan la media.
-2.  **Puntuación de Corrupción (CPI)**:
-    -   Los valores pueden ir teóricamente de 0 a 100, aunque en la práctica los valores reales están en un rango más estrecho.
-    -   La puntuación de corrupción también muestra variabilidad, aunque en menor medida que la inflación. Los valores van desde muy bajos (alta percepción de corrupción) hasta relativamente altos (baja percepción de corrupción).
-    -   La mediana de la puntuación de corrupción es moderada, lo que indica que muchos países tienen niveles de corrupción percibidos en un rango medio.
-3.  **Rango de Corrupción**:
-    -   Representa el puesto de un país en el índice de percepción de corrupción (CPI). Siendo el puesto 1 el pais con una menor percepción de corrupción.
-4.  **Años**:
-    -   Los datos abarcan desde 1995 hasta 2023. Esto permite un análisis longitudinal de las tendencias en la inflación y la percepción de corrupción.
-
-En resumen, el resumen del DataFrame transformado (`df_melted`) destaca la variabilidad en las tasas de inflación y las puntuaciones de corrupción entre los países y a lo largo del tiempo.\
-Esta variabilidad es crucial para el análisis de la correlación entre estas dos variables, ya que proporciona una base sólida para identificar patrones y tendencias significativas.
-
-## Análisis de la Evolución de la Inflación Promedio Anual por Región {#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region}
-
-### Visualización de la Inflación {#visualizacion-de-la-inflacion}
-
-```{r Inflación1, warning=FALSE}
-# Crear un DataFrame con la inflación promedio anual por región
-df_avg_inflation <- df_melted %>%
-    group_by(region, year) %>%
-    summarise(inflation = median(inflation, na.rm = TRUE), .groups = "drop") %>%
-    ungroup()
-
-# Nota: Se utilizó la mediana en lugar del promedio para evitar que valores extremos afecten el resultado (Como la inflación de 1995 en Europa Oriental y Asia Central causada por Bulgaria y Venezuela en América)
-
-
-# Ajustar el tamaño de los gráficos
-knitr::opts_chunk$set(fig.width=20, fig.height=6.5)
-
-# Agregar un tema a los gráficos
-theme_set(theme_bw())
-
-# Hacer las letras más grandes y los títulos centrados
-theme_update(
-    plot.title = element_text(size = 20, hjust = 0.5),
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14)
-    )
 ```
 
-```{r Inflación2, warning=FALSE}
-# Crear el lineplot
-ggplot(df_avg_inflation, aes(x = year, y = inflation, color = region, group = region)) +
-    geom_line(size=1.5) +
-    scale_y_continuous(limits = c(0, 23)) +
-    geom_text(data = df_avg_inflation %>% filter(inflation > 23),
-              aes(label = round(inflation, 1), y = 23),
-              color = "green", size = 3, vjust = -0.5) +
-    geom_point(size=5) +
-    scale_color_brewer(palette = "Dark2") +
-    labs(title = "Evolución de la Inflación Promedio Anual por Región",
-         x = "Año",
-         y = "Inflación Promedio",
-         color = "Región")
-```
+### Carga, Visualización e Insercción del DataFrame de PIB
 
-### Análisis del Gráfico de Evolución de la Inflación Mediana Anual por Región {#analisis-del-grafico-de-evolucion-de-la-inflacion-promedio-anual-por-region}
-
-El gráfico muestra la evolución de la inflación promedio anual por región desde 1995 hasta 2023. A continuación, se presentan algunos puntos clave observados en el gráfico:
-
-1.  **Patrones Generales**:
-    -   La crisis del 2008 y los estímulos monetarios de la crisis del 2021 se vieron reflejados en un aumento de la inflación mundial.
-    -   Durante los años proximos de la crisis surge una bajada lenta de la inflación.
-2.  **América (AME) y África Subsahariana (SSA)**:
-    -   Se observa una tendencia general a la baja en la inflación desde 1995 hasta principios de la década de 2000.
-3.  **Asia-Pacífico (AP)**:
-    -   La región ha mantenido una inflación relativamente baja y estable en comparación con otras regiones.
-    -   Aunque hay algunos picos, la inflación en Asia-Pacífico ha sido más controlada.
-4.  **Europa Occidental y Unión Europea (WE/EU)**:
-    -   Esta región ha experimentado una inflación muy baja y estable durante la mayor parte del período analizado.
-5.  **Medio Oriente y Norte de África (MENA)**:
-    -   En 2008 tuvo el peor desempeño relativamente dado que empieza al nivel de AP(5%) y termina junto a SSA(11%).
-    -   Sin embargo en 2022 muestra unos resultados muy buenos conteniendo la inflación.
-6.  **Europa Oriental y Asia Central (ECA)**:
-    -   Muestra una tendencia fluctuante en la inflación a lo largo de los años.
-    -   La región muestra una inflación muy alta hasta 2022, donde se empieza a moderar y seguir la tendencia mundial, especialmente despues de 2008 aunque en 2022 vuelve a despuntar.
-
-## Análisis de la Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región {#analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
-
-### Adaptación al Cambio de Formato de 2012 {#adaptacion-formato-cpi}
-
-```{r CPI1, warning=FALSE}
-# Al ejecutar el gráfico previamente se podia observar que el formato del CPI cambió en 2012, siendo 100 la puntuación máxima en lugar de 10.
-df_melted %>%
-    filter(year %in% c(2010, 2011, 2012, 2013)) %>%
-    group_by(region, year) %>%
-    summarise(score = mean(score, na.rm = TRUE), .groups = "drop") %>%
-    head(4)
-
-# Multiplico por 10 el CPI de los años 1995 hasta 2011 para que estén en la misma escala que los años posteriores
-df_melted <- df_melted %>%
-    mutate(score = ifelse(year >= 1995 & year <= 2011, score * 10, score))
-```
-
-### Calculo del CPI anual por región {#calculo-del-cpi-anual-por-region}
-
-```{r CPI2, warning=FALSE}
-# Calcular el CPI promedio anual por región
-df_avg_score <- df_melted %>%
-    group_by(region, year) %>%
-    summarise(score = mean(score, na.rm = TRUE), .groups = "drop") %>%
-    ungroup()
-
-# Eliminar filas con valores nulos en la columna 'score', provocaban warnings
-df_avg_score <- df_avg_score %>% drop_na(score)   
-
-
-```
-
-### Visualización del CPI {#visualizacion-del-cpi}
-
-```{r CPI3, warning=FALSE}
-# Crear el lineplot
-ggplot(df_avg_score, aes(x = year, y = score, color = region, group = region)) +
-    geom_line(size=1.5) +
-    geom_point(size=5) +
-    scale_color_brewer(palette = "Dark2") +
-    labs(title = "Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región",
-         x = "Año",
-         y = "CPI Promedio",
-         color = "Región")
-```
-
-### Análisis del Gráfico de Evolución de la Puntuación de la Percepción de Corrupción (CPI) Promedio Anual por Región {#analisis-del-grafico-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
-
-El gráfico muestra la evolución de la puntuación de corrupción promedio anual por región desde 1995 hasta 2023. A continuación, se presentan algunos puntos clave observados en el gráfico:
-
-1.  **América (AME)**:
-    -   La puntuación de corrupción en Iberoamérica ha mostrado una tendencia muy fluctuante a lo largo de los años, especialmente al inicio.
-2.  **África Subsahariana (SSA)**:
-    -   Muestra una tendencia similar a la de Iberoamérica, con puntuaciones de corrupción que varían considerablemente a lo largo del tiempo.
-3.  **Asia-Pacífico (AP)**:
-    -   En la primera decada ha mostrado una tendencia bajista que posteriormente se estabilizó sin apenas subida.
-4.  **Europa Occidental y Union Europea (WE/EU)**:
-    -   Esta región ha experimentado una puntuación de corrupción relativamente baja y estable durante la mayor parte del período analizado.
-5.  **Medio Oriente y Norte de África (MENA)**:
-    -   Muestra una puntuación de corrupción relativamente alta en comparación con Europa y Asia-Pacífico.
-    -   Hay fluctuaciones significativas en la puntuación, pero con tendencia a la baja.
-6.  **Europa Oriental y Asia Central (ECA)**:
-    -   Muestra una tendencia alcista en la puntuación de corrupción a lo largo de los años.
-
-## Análisis de la Correlación entre la Puntuación de Corrupción y la Inflación {#analisis-de-la-correlacion-entre-la-puntuacion-de-corrupcion-y-la-inflacion}
-
-### Calculo de valores medianos de inflación y medios de puntuación de corrupción {#calculo-inflacion-cpi}
-
-```{r Correlación Inflación CPI1}
-# Calculo los valores medios de inflación y puntuación de corrupción por país
-df_avg <- df_melted %>%
-    group_by(country, region) %>% 
-    summarise(
-        inflation = median(inflation, na.rm = TRUE),
-        score = mean(score, na.rm = TRUE), .groups = "drop"
-    ) %>%
-    arrange(region, country)
-    
-# Nota1: ordeno por región y país para que el hue siga el mismo orden que el resto
-# Nota2: utilizo la mediana para la inflación para evitar que valores extremos como los de Bulgaria y Venezuela ya mencionados.
-```
-
-### Visualización de la correlación {#visualizacion-correlacion}
-
-```{r Correlación Inflación CPI2}
-# Crear el scatter plot para visualizar la correlación entre inflación y puntuación de corrupción
-# Crear el scatter plot con una línea de regresión única para todas las regiones pero sin el scatter (Quiero una única linea de regresión)
-G_inf_corr <- ggplot(df_avg, aes(x = inflation, y = score, color = region)) +
-    geom_point(size = 5) +
-    geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 2.5, color = "black", formula = y ~ x) +
-    scale_color_brewer(palette = "Dark2") +
-    labs(
-        title = "Correlación entre Inflación y Puntuación de Corrupción por País",
-        x = "Inflación Mediana",
-        y = "Puntuación de Corrupción Promedio",
-        color = "Región"
-    )
-print(G_inf_corr)
-```
-
-### Análisis del gráfico de la Correlación entre el CPI y la Inflación {#analisis-del-grafico-correlacion-cpi-inflacion}
-
-El scatterplot muestra la relación entre la inflación y la puntuación de corrupción promedio por país. A continuación, se presentan algunos puntos clave observados en el gráfico:
-
-1.  **Tendencia General**:
-    -   Existe una tendencia negativa entre la inflación y la puntuación de corrupción. Esto sugiere que a medida que aumenta la inflación, la puntuación de corrupción tiende a disminuir, indicando mayores niveles de corrupción.
-2.  **Regiones con Alta Inflación**:
-    -   Las regiones como Latinoamérica (AME) y África Subsahariana (SSA) muestran una mayor dispersión en los valores de inflación, con algunos países experimentando inflaciones extremadamente altas. Estos países también tienden a tener puntuaciones de corrupción más bajas, lo que indica altos niveles de corrupción.
-3.  **Regiones con Baja Inflación**:
-    -   Europa Occidental, la Union Europea(WE/EU) y Asia-Pacífico (AP) muestran inflaciones relativamente bajas y puntuaciones de corrupción más altas, lo que indica menores niveles de corrupción. Esto sugiere una mejor gestión económica y políticas más efectivas contra la corrupción en estas regiones.
-4.  **Línea de Tendencia**:
-    -   La línea de tendencia discontinua en el gráfico refuerza la relación negativa entre la inflación y la puntuación de corrupción. Aunque hay excepciones, la mayoría de los puntos siguen esta tendencia.
-5.  **Valores Atípicos**:
-    -   Se eliminaron los valores atípicos de inflación (percentil 95) para obtener una representación más clara de la tendencia general. Los valores extremadamente altos de inflación empeoraban la visualización de la relación entre las variables.
-
-En resumen, el gráfico sugiere que existe una correlación negativa entre la inflación y la puntuación de corrupción. Las regiones con alta inflación tienden a tener mayores niveles de corrupción, mientras que las regiones con baja inflación muestran menores niveles de corrupción. Este análisis destaca la importancia de la estabilidad económica y la buena gobernanza en la retención del poder adquisitivo de la moneda.
-
-### Coeficiente de Correlación de Spearman's Rank {#spearman}
-
-#### ¿Por qué este coeficiente?
-
-Utilizo este método debido a que los datos no siguen una distribución normal y hay valores extremos.
-
-#### Calculo
-
-```{r Coeficiente Spearman, echo=TRUE, warning=FALSE}
-# Calcular el coeficiente de correlación de Spearman
-corr_test <- cor.test(df_melted$inflation, df_melted$score,
-                      method = "spearman", use = "complete.obs",
-                      exact = FALSE)
-# Nota: 
-# Nota: Me saltaba el error de que no era posible calcular el coeficiente exacto, por lo que lo he puesto en FALSE, es decir, que no se calcula exactamente.
-
-# Definir el nivel de significancia
-alpha <- 0.05
-
-# Mostrar los resultados
-cat("Coeficiente de Correlación de Spearman's Rank:", corr_test$estimate, "\n")
-if (corr_test$p.value < alpha) {
-  cat("p-valor:", corr_test$p.value, ", Se rechaza la hipótesis nula\n")
-} else {
-  cat("p-valor:", corr_test$p.value, ", No se rechaza la hipótesis nula\n")
-}
-```
-
-#### Resultados: {#resultados}
-
-El Coeficiente de Correlación de Spearman's Rank calculado entre las columnas `inflation` y `score` ha arrojado los siguientes resultados:
-
--   **Coeficiente de Correlación de Spearman's Rank**: -0.4098749
--   **p-valor**: 6.571181e-165
-
-#### Interpretación: {#interpretacion}
-
-1.  **Coeficiente de Correlación**:
-    -   El valor del coeficiente de correlación de Spearman es -0.4098749, lo que indica una correlación negativa moderada entre la inflación y la puntuación de corrupción.
-    -   Esto sugiere que, en general, a medida que aumenta la inflación tambien existe una mayor percepción de la corrupción.
-2.  **p-valor**:
-    -   El **p-valor** obtenido es extremadamente bajo (6.571181e-165), lo que es mucho menor que el nivel de significancia comúnmente utilizado (**α** = 0.05). Esto significa que podemos rechazar la hipótesis nula de que no existe correlación entre la inflación y la puntuación de corrupción. En otras palabras, la correlación observada es estadísticamente significativa.
-
-En resumen, los resultados del Coeficiente de Correlación de Spearman's Rank sugieren que existe una correlación negativa significativa entre la inflación y la puntuación de corrupción en los datos analizados.
-
-### Visualización de la Correlación e Inflación mediana por Año {#analisis-matriz-correlacion}
-
-```{r correlacion por año, echo=TRUE, warning=FALSE}
-# Calcular la correlación entre 'inflation' y 'score' por año
-correlation_by_year <- df_melted %>%
-    group_by(year) %>% 
-    summarise(correlation = cor(inflation, score, method = "spearman", use = "complete.obs"))
-# Crear un barplot de la correlación por año
-ggplot(correlation_by_year, aes(x = year)) +
-    geom_bar(aes(y = correlation, fill = correlation), stat = "identity", color = "white") +
-
-    scale_fill_gradient2(low = "#ff0000", high = "#77ff00", mid = "#6600ff", midpoint = -0.15) +
-
-    geom_bar(data = df_melted %>% group_by(year) %>% summarise(median_inflation = median(inflation, na.rm = TRUE)),
-              aes(y = median_inflation / 10), stat = "identity", fill = 'blue', alpha = 0.3) +
-
-        geom_text(data = df_melted %>% group_by(year) %>% summarise(median_inflation = median(inflation, na.rm = TRUE)),
-              aes(y = median_inflation / 10, label = round(median_inflation, 2)), vjust = -0.5, size = 4, color = "#000000") +
-
-    geom_text(aes(y = correlation, label = round(correlation, 2)), vjust = 1.1, size = 4) +
-    
-    scale_color_brewer(palette = "Dark2") +
-
-    labs(title = "Correlación entre Inflación y Puntuación de Corrupción por Año",
-         x = "Año",
-         y = "              Correlación          Inflación Mediana (Escala 1:10)",
-         fill = "Correlación") 
-```
-
-**Nota**: El CPI promedio anual no tiene apenas varianza, situandose entre 40 y 43,5 puntos salvo en 1995 que llegó a alcanzar los 60 puntos, que fueron bajando paulatinamente hasta el año 2003 donde comienza la estabilidad.
-
-#### Analisis del Gráfico de la Correlación e Inflación mediana por Año
-
-1.  **Correlación:**
-    -   Los colores rojos indican una fuerte correlación negativa, mientras que los colores azulados indican una falta de correlación.
-    -   Se observa una tendencia general a la baja en la correlación entre la inflación y la puntuación de corrupción a lo largo de los años pero con bastante varianza.
-    -   Por lo general la correlación aumenta a medida que la inflación tambien aumenta, lo que sugiere que la población percibe más corrupción cuando se devalua la moneda.
-2.  **Inflación Mediana:**
-    -   La inflación mediana se muestra en azul claro en la parte inferior del gráfico.
-    -   Se observa un claro patrón de subida y bajada a lo largo de los años similar a una onda.
-    -   Picos en 1995, 2008 y 2022.
-    -   Minimos en 1999, 2001 y 2005.
-    -   Ligera tendencia a la baja, maximos y minimos locales cada vez más bajos.
-    -   El ciclo tiene una frecuencia de 13-14 años.
-3.  **Interpretación:**
-    -   La intersección de la inflación mediana y la correlación indica que la correlación es más fuerte en los años con inflación más alta.
-    -   Esto sugiere que la percepción de corrupción está más influenciada por la inflación en los años de crisis económica.
-    -   Excepción en 2022, donde la inflación es alta pero la correlación es baja, aparentemente la población no percibe corrupción en los actos políticos durante la crisis del covid, apesar de que la gestión de la crisis fue muy criticada.
-
-## Clustering de Países por Inflación y Puntuación de Corrupción {#clustering-de-paises-por-inflacion-y-puntuacion-de-corrupcion}
-
-### Preparación de los Datos {#preparacion-de-los-datos}
-
-```{r Clustering1, echo=TRUE, warning=FALSE}
-
-# Seleccionar las columnas 'inflation' y 'score' para el clustering
-df_cluster <- df_avg[, c("inflation", "score")]
-
-# Normalizar los datos para que tengan media 0 y desviación estándar 1
-df_cluster_norm <- scale(na.omit(df_cluster))
-
-# Mostrar los primeros registros del DataFrame normalizado
-head(df_cluster_norm)
-```
-
-### Clustering {#clustering-jerarquico}
-
-```{r Clustering2, echo=TRUE, warning=FALSE}
-
-# Aplicar el algoritmo de K-means al DataFrame normalizado 'df_cluster_norm'
-# - centers: número de clusters a formar (en este caso, 6, el número de regiones)
-# - nstart: número de veces que el algoritmo de K-means se ejecutará con diferentes centroides iniciales (en este caso, 177, el número de países)
-
-set.seed(2706)
-
-kmeans_model <- kmeans(df_cluster_norm, centers = 6, nstart = 177)
-
-# Añadir los clusters resultantes del modelo K-means al DataFrame original 'df_avg'
-# Lo convierto a factor para que se muestre en el gráfico como datos categóricos
-df_avg$kmeans_cluster <- as.factor(kmeans_model$cluster)
-
-# Graficar los clusters de K-means
-ggplot(df_avg, aes(x = inflation, y = score, color = kmeans_cluster, shape = region))+
-    geom_point(size = 5) +
-    scale_color_brewer(palette = "Dark2") +
-    scale_shape_manual(values = c(16, 17, 18, 19, 15, 21)) +
-    labs(title = "Clustering de Países por Inflación y Puntuación de Corrupción (K-means)",
-        x = "Inflación Mediana",
-        y = "Puntuación de Corrupción Promedio",
-        color = "Cluster (K-means)",
-        shape = "Región")
-```
-
-### Análisis del Gráfico de Clustering de Países por Inflación y Puntuación de Corrupción {#analisis-del-grafico-de-clustering-de-paises-por-inflacion-y-puntuacion-de-corrupcion}
-
-1.  **Clusters**:
-    -   Se han formado 6 clusters distintos, 1 por cada región, cada uno representado por un color diferente.
-    -   Los clusters se han formado en función de la similitud en los valores de inflación y puntuación de corrupción de los países.
-2.  **Distribución**:
-    -   Los clusters no apenas se parcen a las regiones, lo que indica que la inflación y la corrupción no siguen un patrón geográfico.
-
-
-## Ampliación del dataset con el PIB {#ampliacion-dataset-pib}
-
-```{r pib 1, echo=TRUE, warning=FALSE}
-df_pib <- read.csv('world_development_data_interpolated.csv')[, c(1, 2, 9, 10, 29, 32)]
+```{r}
+df_pib <- read.csv('world_development_data_interpolated.csv')[, c(1, 2, 9, 10, 32)]
 # Filtrar el DataFrame para eliminar las filas cuyo año sea anterior a 1995
 df_pib <- df_pib %>% filter(Year >= 1995)
+head(df_pib)
 ```
-### Descripción de los Datos {#descripcion-datos-df_pib}
 
-El DataFrame `df_pib` contiene datos de desarrollo mundial, específicamente relacionados con el Producto Interno Bruto (PIB) y otros indicadores económicos. A continuación se presenta una descripción de las columnas incluidas en este DataFrame:
-Fuente: [Kaggle](https://www.kaggle.com/datasets/samybaladram/databank-world-development-indicators)
-1. **Country**:
-    - Nombre del país al que pertenecen los datos.
-    - Tipo de dato: Carácter.
+#### Unión de ambos DataFrame
 
-2. **Year**:
-    - Año en el que se registraron los datos.
-    - Tipo de dato: Numérico.
-
-3. **GDP**:
-    - Producto Interno Bruto (PIB) en dólares estadounidenses.
-    - Tipo de dato: Numérico.
-    - Descripción: Representa el valor total de todos los bienes y servicios producidos en un país en un año determinado.
-  
-4. **GDP Growth**:
-    - Tasa de crecimiento del Producto Interno Bruto (PIB).
-    - Tipo de dato: Numérico.
-    - Descripción: Representa el cambio porcentual en el PIB de un año a otro.
-
-5. **Population, total**:
-    - Población total del país.
-    - Tipo de dato: Numérico.
-
-6. **TaxRevenue**:
-    - Ingresos fiscales totales del país.
-    - Tipo de dato: Numérico.
-    - Descripción: Representa la cantidad total de ingresos recaudados por el estado a través de impuestos, expresado en % del PIB. No tiene en cuenta el endeudamiento.
-  
-A continuación se muestra un resumen estadístico de las columnas del DataFrame `df_pib`:
-```{r pib 2}
-print(summary(df_pib))
+```{r}
 # Crear una lista de correspondencias entre los nombres de países en ambos datasets
 country_corrections <- c(
     "United States" = "United States of America",
@@ -551,25 +171,349 @@ df_melted$country <- recode(df_melted$country, !!!country_corrections)
 # Reemplazar los nombres de países en df_pib
 df_pib$Country <- recode(df_pib$Country, !!!country_corrections)
 # Unir el DataFrame de inflación y corrupción con el DataFrame de PIB
-df_melted <- df_melted %>% inner_join(df_pib, by = c("country" = "Country", "year" = "Year"))
-head(df_melted)
+df <- df_melted %>% left_join(df_pib, by = c("country" = "Country", "year" = "Year"))
+
+# Cambiar el nombre de las columnas de inglés a español
+colnames(df) <- c("pais", "iso", "region", "año", "inflacion", "cpi", "pib", "crecimiento_pib", "ingresos_fiscales")
 ```
+
+#### Corrección de la escala del CPI
+
+En 2011 se produce un cambio de escala en el CPI, aumentando el limite superior del rango a 100 en lugar de 10.
+
+```{r}
+# Multiplicar por 10 el CPI de 1995 hasta 2011
+df <- df %>% mutate(cpi = ifelse(año >= 1995 & año <= 2011, cpi * 10, cpi))
+```
+
+```{r}
+# Mostrar un resumen de los ingresos fiscales por país
+media_ingresos_fiscales <- df %>% drop_na(ingresos_fiscales) %>% group_by(pais) %>% summarize(media_ingresos_fiscales = mean(ingresos_fiscales, na.rm = TRUE)) %>% arrange(pais) %>% select(pais, media_ingresos_fiscales)
+```
+
+::: scroll
+```{r}
+knitr::kable(media_ingresos_fiscales)
+```
+:::
+
+Como se puede observar estos datos de presión fiscal no tienen ni pies ni cabeza, y multiplicarlos por 2 o por 3 no parece que vaya a
+resolver el problema por lo que he buscado otra fuente de datos, en este caso como se indica al inicio del documento los he extraído del
+**FMI**.
+
+### Carga, Visualización del DataFrame de Presión Fiscal
+
+```{r}
+df_pfisc <- read_excel("imf-dm-export-20241217.xls")
+head(df_pfisc)
+```
+
+#### Reemplazo de Valores "no data" por NA
+
+```{r,echo=TRUE, warning=FALSE}
+# Renombrar la primera columna a pais
+colnames(df_pfisc)[1] <- "pais"
+
+# Contar valores "no data" en cada columna
+no_data_count <- colSums(df_pfisc == "no data", na.rm = TRUE)
+
+print(paste("Hay un total de", sum(no_data_count), "valores no data"))
+
+# Reemplazar los valores "no data" por NA en todo el DataFrame porque da problemas al conteo
+df_pfisc[df_pfisc == "no data"] <- NA
+```
+
+#### Conteo de valores NA
+
+```{r,echo=TRUE, warning=FALSE}
+# Contar y mostrar el número de valores nulos por columna
+print(paste("Hay un total de", sum(is.na(df_pfisc)), "valores nulos"))
+```
+
+#### Formatear el DataFrame poniendo los años en una columna
+
+```{r,echo=TRUE, warning=FALSE}
+años <- colnames(df_pfisc)[-1]
+# Convertir las columnas de ingresos fiscales de 1995 a 2022 a valores numéricos
+df_pfisc <- df_pfisc %>% mutate_at(vars(-pais), as.numeric)
+  
+# Transformar el DataFrame de formato ancho a formato largo para poder unirlo correctamente con el DataFrame principal
+df_pfisc <- df_pfisc %>% pivot_longer(cols = all_of(años), names_to ="año", values_to = "ingresos_fiscales_fmi") %>% mutate(año = as.numeric(año))
+head(df_pfisc)
+```
+
+### Unión de ambos DataFrame
+
+```{r}
+# Mapear los nombres de los países en df_pfisc a los nombres de los países en df
+# Crear una lista de correspondencias entre los nombres de países en ambos datasets
+country_corrections_pfisc <- c(
+    "United States" = "United States of America",
+    "Russia" = "Russian Federation",
+    "South Korea" = "Korea, Rep.",
+    "North Korea" = "Korea, Dem. People's Rep.",
+    "Iran" = "Iran, Islamic Rep.",
+    "Egypt" = "Egypt, Arab Rep.",
+    "Vietnam" = "Viet Nam",
+    "Syria" = "Syrian Arab Republic",
+    "Venezuela" = "Venezuela, RB",
+    "Yemen" = "Yemen, Rep.",
+    "Gambia" = "Gambia, The",
+    "Congo (Kinshasa)" = "Congo, Dem. Rep.",
+    "Congo (Brazzaville)" = "Congo, Rep.",
+    "Tanzania" = "Tanzania, United Rep.",
+    "Laos" = "Lao PDR",
+    "Kyrgyzstan" = "Kyrgyz Republic",
+    "Slovakia" = "Slovak Republic",
+    "Brunei" = "Brunei Darussalam",
+    "Bahamas" = "Bahamas, The",
+    "Congo" = "Congo, Rep.",
+    "Côte d'Ivoire" = "Cote d'Ivoire",
+    "Hong Kong" = "Hong Kong SAR, China",
+    "Korea (South)" = "Korea, Rep.",
+    "Saint Lucia" = "St. Lucia",
+    "Saint Vincent and the Grenadines" = "St. Vincent and the Grenadines",
+    "Taiwan, China" = "Taiwan" 
+)
+
+# Reemplazar los nombres de países en df_pfisc
+df_pfisc$pais <- recode(df_pfisc$pais, !!!country_corrections_pfisc)
+df_or <- df
+# Unir df y df_pfisc a través de las columnas pais y año
+df <- df %>% inner_join(df_pfisc, by = c("pais", "año"))
+head(df)
+```
+
+### Visualización de la diferencia en la Presión Fiscal entre ambos DataFrames
+
+```{r echo=TRUE, warning=FALSE}
+# Scatterplot de los ingresos fiscales por país
+
+# Create separate ggplot objects for each DataFrame
+ing_fiscal1 <- ggplot(df, 
+                   aes(y = pais, x = ingresos_fiscales_fmi, color = ingresos_fiscales_fmi)) +
+  geom_point(size = 3, alpha= 0.7) +
+  scale_color_gradient(low = '#ff7f7f',high ='#750000') + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "#f0f4f9")) +
+  labs(title = "Ingresos Fiscales por País",
+       x = NULL,
+       y = NULL) +
+  xlim(0, 70)
+
+ing_fiscal2 <- ggplot(df, 
+                   aes(y = pais, x = ingresos_fiscales, color = ingresos_fiscales)) +
+  geom_point(size = 3) +
+  scale_color_gradient(low = '#7fcbff',high ='#000175') + 
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "transparent", color = NA),  
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank()) +
+  labs(title = "Ingresos Fiscales por País",
+       x = NULL,
+       y = NULL) +
+  xlim(0, 70)
+
+# Guardar el gráfico
+ggsave("ing_fisc1.png", plot = ing_fiscal1, width = 20, height = 60, units = "cm")
+ggsave("ing_fisc2.png", plot = ing_fiscal2, width = 20, height = 60, units = "cm")
+# Nota después de guardar los gráficos los he unido en un solo gráfico con un editor de imágenes
+# No he conseguido que se muestren los dos gráficos en una sola celda
+```
+
+```{r echo=TRUE, out.width='70%', fig.align='center', warning=FALSE}
+knitr::include_graphics("ing_fisc.png")
+```
+
+#### Eliminación de la columna de presión fiscal de Kaggle
+
+```{r}
+# Eliminar la columna presion_fiscal de df
+df <- df %>% select(-ingresos_fiscales)
+# Renombrar a ingresos_fiscales_fmi como ingresos_fiscales
+colnames(df)[colnames(df) == "ingresos_fiscales_fmi"] <- "ingresos_fiscales"
+
+df <- df %>%
+  arrange(pais, año) %>%
+  group_by(pais) %>%
+  mutate(variacion_ingresos = ingresos_fiscales - lag(ingresos_fiscales))
+
+ # Mostrar un resumen de los datos
+summary(df)
+```
+
+::: scroll
+```{r}
+knitr::kable(df)
+```
+:::
+
+### Descripción de los datos del DataFrame Final {#descripcion-del-dataframe-transformado}
+
+1.  **País**:
+    -   Nombre del país al que pertenecen los datos.
+    -   Tipo de dato: Carácter.
+2.  **ISO**:
+    -   Código de país de tres letras.
+    -   Tipo de dato: Carácter.
+3.  **Región**:
+    -   Región geográfica a la que pertenece el país.
+    -   Tipo de dato: Carácter.
+4.  **Año**:
+    -   Año al que corresponden los datos.
+    -   Tipo de dato: Numérico.
+5.  **Inflación**:
+    -   Tasa de inflación anual del país en un año determinado.
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa la perdida de poder adquisitivo de los ciudadanos.
+6.  **Puntuación de Corrupción (CPI)**:
+    -   Índice de Percepción de Corrupción (CPI) del país en un año determinado.
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa la percepción de corrupción en el sector público de un país en una escala de 0 a 100, donde 0 indica una
+        alta percepción de corrupción y 100 indica una baja percepción de corrupción.
+7.  **PBI**:
+    -   Producto Interno Bruto (PIB) en dólares estadounidenses.
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa el valor total de todos los bienes y servicios producidos en un país en un año determinado.
+8.  **Crecimiento_PIB**:
+    -   Tasa de crecimiento del Producto Interno Bruto (PIB).
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa el cambio porcentual en el PIB de un año a otro.
+9.  **Ingresos_fiscales**:
+    -   Ingresos fiscales totales del país.
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa la cantidad total de ingresos recaudados por el estado a través de impuestos, expresado en % del PIB. No
+        tiene en cuenta el endeudamiento.
+
+## Análisis de la Evolución de la Inflación Promedio Anual por Región {#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region}
+
+### Visualización de la Inflación {#visualizacion-de-la-inflacion}
+
+```{r Inflación1, warning=FALSE}
+# Crear un DataFrame con la inflación promedio anual por región
+df_avg_inflation <- df %>%
+    group_by(region, año) %>%
+    summarise(inflacion = median(inflacion, na.rm = TRUE), .groups = "drop") %>%
+    ungroup()
+
+# Nota: Se utilizó la mediana en lugar del promedio para evitar que valores extremos afecten el resultado (Como la inflación de 1995 en Europa Oriental y Asia Central causada por Bulgaria y Venezuela en América)
+
+
+# Ajustar el tamaño de los gráficos
+knitr::opts_chunk$set(fig.width=20, fig.height=6.5)
+
+# Agregar un tema a los gráficos
+theme_set(theme_bw())
+
+# Hacer las letras más grandes y los títulos centrados
+theme_update(
+    plot.title = element_text(size = 20, hjust = 0.5),
+    axis.title = element_text(size = 16),
+    axis.text = element_text(size = 14),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14)
+    )
+```
+
+```{r Inflación2, warning=FALSE}
+# Crear el lineplot
+ggplot(df_avg_inflation, aes(x = año, y = inflacion, color = region, group = region)) +
+    geom_line(size=1.5) +
+    scale_y_continuous(limits = c(0, 23)) +
+    geom_text(data = df_avg_inflation %>% filter(inflacion > 23),
+              aes(label = round(inflacion, 1), y = 23),
+              color = "#6464AA", size = 5, vjust = -0.7) +
+    geom_point(size=5) +
+    scale_color_brewer(palette = "Dark2") +
+    labs(title = "Evolución de la Inflación Promedio Anual por Región",
+         x = "Año",
+         y = "Inflación Promedio",
+         color = "Región")
+```
+
+#### Observaciones:
+
+1.  **Patrones Generales**:
+    -   La crisis del 2008 y los estímulos monetarios de la crisis del 2021 se vieron reflejados en un aumento de la inflación mundial.
+    -   Durante los años próximos de la crisis surge una bajada lenta de la inflación.
+2.  **América (AME) y África Subsahariana (SSA)**:
+    -   Se observa una tendencia general a la baja en la inflación desde 1995 hasta principios de la década de 2000.
+3.  **Asia-Pacífico (AP)**:
+    -   La región ha mantenido una inflación relativamente baja y estable en comparación con otras regiones.
+    -   Aunque hay algunos picos, la inflación en Asia-Pacífico ha sido más controlada.
+4.  **Europa Occidental y Unión Europea (WE/EU)**:
+    -   Esta región ha experimentado una inflación muy baja y estable durante la mayor parte del período analizado.
+5.  **Medio Oriente y Norte de África (MENA)**:
+    -   En 2008 tuvo el peor desempeño relativamente dado que empieza al nivel de AP(5%) y termina junto a SSA(11%).
+    -   Sin embargo en 2022 muestra unos resultados muy buenos conteniendo la inflación.
+6.  **Europa Oriental y Asia Central (ECA)**:
+    -   Muestra una tendencia fluctuante en la inflación a lo largo de los años.
+    -   La región muestra una inflación muy alta hasta 2022, donde se empieza a moderar y seguir la tendencia mundial, especialmente despues
+        de 2008 aunque en 2022 vuelve a despuntar.
+
+## Análisis de la Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región {#analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
+
+### Calculo del CPI anual por región {#calculo-del-cpi-anual-por-region}
+
+```{r CPI2, warning=FALSE}
+# Calcular el CPI promedio anual por región
+df_avg_score <- df %>%
+    group_by(region, año) %>%
+    summarise(cpi = mean(cpi, na.rm = TRUE), .groups = "drop") %>%
+    ungroup()
+
+# Eliminar filas con valores nulos en la columna 'cpi', provocaban warnings
+df_avg_score <- df_avg_score %>% drop_na(cpi)   
+```
+
+### Visualización del CPI {#visualizacion-del-cpi}
+
+```{r CPI3, warning=FALSE}
+# Crear el lineplot
+ggplot(df_avg_score, aes(x = año, y = cpi, color = region, group = region)) +
+    geom_line(size=1.5) +
+    geom_point(size=5) +
+    scale_color_brewer(palette = "Dark2") +
+    labs(title = "Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región",
+         x = "Año",
+         y = "CPI Promedio",
+         color = "Región")
+```
+
+#### Observaciones:
+
+1.  **América (AME)**:
+    -   La puntuación de corrupción en Iberoamérica ha mostrado una tendencia muy fluctuante a lo largo de los años, especialmente al
+        inicio.
+2.  **África Subsahariana (SSA)**:
+    -   Muestra una tendencia similar a la de Iberoamérica, con puntuaciones de corrupción que varían considerablemente a lo largo del
+        tiempo.
+3.  **Asia-Pacífico (AP)**:
+    -   En la primera decada ha mostrado una tendencia bajista que posteriormente se estabilizó sin apenas subida.
+4.  **Europa Occidental y Union Europea (WE/EU)**:
+    -   Esta región ha experimentado una puntuación de corrupción relativamente baja y estable durante la mayor parte del período analizado.
+5.  **Medio Oriente y Norte de África (MENA)**:
+    -   Muestra una puntuación de corrupción relativamente alta en comparación con Europa y Asia-Pacífico.
+    -   Hay fluctuaciones significativas en la puntuación, pero con tendencia a la baja.
+6.  **Europa Oriental y Asia Central (ECA)**:
+    -   Muestra una tendencia alcista en la puntuación de corrupción a lo largo de los años.
 
 ## Análisis de la evolución del PIB por región {#analisis-evolucion-pib}
 
 ```{r pib 3}
 # Calcular el PIB y PIB per cápita promedio anual por región
-df_avg_pib <- df_melted %>%
-    group_by(region, year) %>%
-    summarise(GDP = mean(GDP, na.rm = TRUE),
-              GDPGrowth = mean(GDPGrowth, na.rm = TRUE), .groups = "drop") %>%
+df_avg_pib <- df %>%
+    group_by(region, año) %>%
+    summarise(pib = mean(pib, na.rm = TRUE),
+              crecimiento_pib = mean(crecimiento_pib, na.rm = TRUE), .groups = "drop") %>%
     ungroup()
 head(df_avg_pib)
 
 # Filtrar las regiones WE/EU, AP, MENA y AME para el lineplot
 df_avg_pib_we_eu_ap <- df_avg_pib %>% filter(region %in% c("WE/EU", "AP", "AME"))
 # Crear el lineplot para la evolución del PIB de WE/EU, AP y AME
-ggplot(df_avg_pib_we_eu_ap, aes(x = year, y = GDP, color = region, group = region)) +
+ggplot(df_avg_pib_we_eu_ap, aes(x = año, y = pib, color = region, group = region)) +
     geom_line(size = 1.5) +
     geom_point(size = 5) +
     scale_color_brewer(palette = "Dark2") +
@@ -577,13 +521,12 @@ ggplot(df_avg_pib_we_eu_ap, aes(x = year, y = GDP, color = region, group = regio
          x = "",
          y = "",
          color = "Región")
-```	
-
+```
 
 ```{r pib 4 , echo=FALSE, warning=FALSE}
 df_avg_pib_mena <- df_avg_pib %>% filter(region %in% c("MENA"))
 # Crear el lineplot para la evolución del PIB de MENA
-ggplot(df_avg_pib_mena, aes(x = year, y = GDP, color = region, group = region)) +
+ggplot(df_avg_pib_mena, aes(x = año, y = pib, color = region, group = region)) +
     geom_line(size = 1.5) +
     geom_point(size = 5) +
     scale_color_manual(values = brewer.pal(4, "Dark2")[4:4]) +
@@ -596,7 +539,7 @@ ggplot(df_avg_pib_mena, aes(x = year, y = GDP, color = region, group = region)) 
 df_avg_pib_ssa_eca <- df_avg_pib %>% filter(region %in% c("SSA", "ECA"))
 
 # Crear el lineplot para la evolución del PIB de SSA y ECA
-ggplot(df_avg_pib_ssa_eca, aes(x = year, y = GDP, color = region, group = region)) +
+ggplot(df_avg_pib_ssa_eca, aes(x = año, y = pib, color = region, group = region)) +
     geom_line(size = 1.5) +
     geom_point(size = 5) +
     scale_color_manual(values = brewer.pal(7, "Dark2")[5:7]) +
@@ -605,11 +548,11 @@ ggplot(df_avg_pib_ssa_eca, aes(x = year, y = GDP, color = region, group = region
          color = "Región")
 ```
 
-### Representación del crecimiento del PIB por región  
+### Representación del crecimiento del PIB por región
 
-```{r pib 5}	
+```{r pib 5, warning=FALSE}
 # Crear el lineplot para la evolución del PIB per cápita mundial
-ggplot(df_avg_pib, aes(x = year, y = GDPGrowth, color = region, group = region)) +
+ggplot(df_avg_pib, aes(x = año, y = crecimiento_pib, color = region, group = region)) +
     geom_line(size = 1.5) +
     geom_point(size = 5) +
     scale_color_brewer(palette = "Dark2") +
@@ -617,14 +560,14 @@ ggplot(df_avg_pib, aes(x = year, y = GDPGrowth, color = region, group = region))
          x = "Año",
          y = "Crecimiento del PIB (%)",
          color = "Región")
-```	
+```
 
-### Análisis de los Gráficos de la Evolución del PIB por Región
+#### Observaciones:
 
-1. **Tendencias Generales**
-    -  Todas las regiones muestran un crecimiento en el PIB a lo largo de los años, con algunas fluctuaciones.
-    -  Se observa un impacto significativo de la crisis financiera de 2008 y el covid del 2021 en el crecimiento del PIB en todas las regiones.
-  
+1.  **Tendencias Generales**
+    -   Todas las regiones muestran un crecimiento en el PIB a lo largo de los años, con algunas fluctuaciones.
+    -   Se observa un impacto significativo de la crisis financiera de 2008 y el covid del 2021 en el crecimiento del PIB en todas las
+        regiones.
 2.  **Grupo 1**:
     -   Se compone de Europa Occidental y la Unión Europea (WE/EU), Asia-Pacífico (AP) y América(AME).
     -   Son las regiones más ricas
@@ -633,110 +576,323 @@ ggplot(df_avg_pib, aes(x = year, y = GDPGrowth, color = region, group = region))
         -   WE/EU se estancó
         -   AP que previamente estaba un poco rezagada superó a AME y a WE/EU con crecimiento elevado
         -   AME creció de forma moderada
-
 3.  **Grupo 2**:
     -   Se compone de Medio Oriente y Norte de África (MENA).
     -   Ha experimentado un crecimiento elevado, similar al de AP.
-
 4.  **Grupo 3**:
     -   Se compone de Europa Oriental y Asia Central (ECA) y África Subsahariana (SSA).
     -   Se caracterizan por ser las regiones con menos poder adquisitivo.
     -   Desde 1995 hasta 2001 apenas hubo crecimiento e incluso decrecimiento en ECA.
-    -   Despues del 2001 Se observa un crecimiento acelerado en el PIB con bastantes fluctuaciones
+    -   Después del 2001 Se observa un crecimiento acelerado en el PIB con bastantes fluctuaciones
 
-## Análisis del Ingreso Fiscal por región {#analisis-evolucion-ingreso-fiscal}
+## Análisis del Ingreso Fiscal {#analisis-evolucion-ingreso-fiscal}
 
-```{r ingreso fiscal 1, warning=FALSE}
+### Evolución del Ingreso Fiscal por Región
 
-# Filtrar el DataFrame para eliminar valores imposibles
-df_tax_region <- df_melted %>% filter(TaxRevenue > 0 & TaxRevenue < 100) %>% drop_na(TaxRevenue) %>% select(region, year, TaxRevenue)
+```{r, warning=FALSE}
 
+# Calcular el Ingreso Fiscal promedio anual por región
+df_median_ingresos_fiscales <- df %>%
+    group_by(region, año) %>%
+    summarise(ingresos_fiscales = median(ingresos_fiscales, na.rm = TRUE), .groups = "drop") %>%
+    ungroup()
+
+# Crear el lineplot para la evolución del Ingreso Fiscal por región
+ggplot(df_median_ingresos_fiscales, aes(x = año, y = ingresos_fiscales, color = region, group = region)) +
+    geom_line(size = 1.5) +
+    geom_point(size = 5) +
+    scale_color_brewer(palette = "Dark2") +
+    labs(title = "Evolución del Ingreso Fiscal por Región",
+         x = "Año",
+         y = "Ingreso Fiscal",
+         color = "Región")
+
+# Calcular el Ingreso Fiscal promedio anual por región
+df_median_variacion_ingresos <- df %>%
+    group_by(region, año) %>%
+    summarise(variacion_ingresos = median(variacion_ingresos, na.rm = TRUE), .groups = "drop") %>%
+    ungroup()
+
+# Crear el lineplot para la evolución del Ingreso Fiscal por región
+ggplot(df_median_variacion_ingresos, aes(x = año, y = variacion_ingresos, color = region, group = region)) +
+    geom_line(size = 1.5) +
+    geom_point(size = 5) +
+    scale_color_brewer(palette = "Dark2") +
+    labs(title = "Variación del Ingreso Fiscal por Región",
+         x = "Año",
+         y = "Variación Ingreso Fiscal",
+         color = "Región")
+
+```
+
+#### Observaciones:
+
+1.  **WE/EU** ha mantenido un ingreso fiscal relativamente alto y estable a lo largo del tiempo.
+2.  **SSA** muestra ingresos fiscales más bajos y con mayor variabilidad, lo que podría indicar inestabilidad económica o fluctuaciones en
+    las políticas fiscales.
+3.  **AME** y **ECA** han tenido un incremento gradual en el ingreso fiscal, sugiriendo un crecimiento económico continuo en estas regiones.
+4.  **MENA** y **AP** presentan una tendencia más volátil, con picos y valles en diferentes años, reflejando posiblemente cambios políticos
+    o económicos significativos.
+
+### Visualización del Ingreso Fiscal por Región
+
+```{r, warning=FALSE}
 # Boxplot para comparar el Ingreso Fiscal por región
-ggplot(df_tax_region, aes(x = region, y = TaxRevenue, fill = region)) +
+ggplot(df, aes(x = region, y = ingresos_fiscales, fill = region)) +
   geom_boxplot() +
-  ylim(-2, 65) +
   scale_fill_brewer(palette = "Dark2") +
   labs(title = "Comparación del Ingreso Fiscal por Región",
        x = "Región",
        y = "Ingreso Fiscal") +
   theme(legend.position = "none")
 
-# Calcular la mediana del Ingreso Fiscal
-median_tax <- median(df_tax_region$TaxRevenue, na.rm = TRUE)
+```
 
-# Distribución del Ingreso Fiscal por región  
-ggplot(df_tax_region, aes(x = TaxRevenue)) +
-geom_histogram(bins=40, fill = '#56596d', color = '#222222') +
-  xlim(0,40) +
-  scale_fill_brewer(palette = "Dark2") +
-  geom_vline(aes(xintercept = median_tax), color = "red", linetype = "dashed", size = 1) +
-  labs(title = "Distribución del Ingreso Fiscal por Región",
+#### Observaciones:
+
+1.  **Mediana de Ingresos**:
+    -   **WE/EU** presenta la mediana de ingreso fiscal más alta, indicando una estabilidad fiscal considerable en esta región.
+    -   **SSA** muestra la mediana de ingresos más baja, lo que sugiere desafíos económicos significativos.
+2.  **Distribución y Variabilidad**:
+    -   **AP** y **MENA** presentan una alta variabilidad en sus ingresos fiscales, reflejada en la amplia dispersión de sus datos. Además
+        se observan varios valores atípicos, lo que podría indicar eventos económicos excepcionales y por consecuencia reformas fiscales.
+    -   **AME** y **ECA** tienen distribuciones más ajustadas, con menos variabilidad comparada con AP y MENA.
+
+### Comparación de la Distribución del Ingreso Fiscal en 1995 vs 2022
+
+```{r, warning=FALSE,  fig.width = 12}
+
+# Calcular el Ingreso Fiscal promedio anual
+df_median_ingresos_fiscales <- df %>%
+    group_by(año) %>%
+    summarise(ingresos_fiscales = median(ingresos_fiscales, na.rm = TRUE), .groups = "drop") %>%
+    ungroup()
+
+# Crear el lineplot para la evolución del Ingreso Fiscal 
+ev_ing_fisc <- ggplot(df_median_ingresos_fiscales, aes(x = año, y = ingresos_fiscales)) +
+    geom_line(size = 1.5) +
+    geom_point(size = 5) +
+    labs(title = "Evolución del Ingreso Fiscal Mundial",
+         x = "Año",
+         y = "Ingreso Fiscal") +
+    scale_x_continuous(breaks = seq(1995, 2022, 3))
+
+ev_ing_fisc <- plotly::ggplotly(ev_ing_fisc)
+ev_ing_fisc
+```  
+
+```{r, warning=FALSE}
+
+# Convierto año a factor para poder visualizarlo en el gráfico
+df$año <- as.factor(df$año)
+
+# Distribución del Ingreso Fiscal
+ggplot(df %>% filter(año == 1995 | año == 2022), aes(x = ingresos_fiscales, fill = año)) +
+  geom_density(alpha=0.5, size=1) +
+  labs(title = "Distribución del Ingreso Fiscal",
        x = "Ingreso Fiscal",
-       y = "Frecuencia")
-```
-
-### Análisis de los Gráficos del Ingreso Fiscal por Región
-
-1. **Boxplot**
-    -  Se observa una gran variabilidad en el ingreso fiscal por región.
-    -  Europa Occidental y la Unión Europea (WE/EU) tiene los ingresos fiscales más altos, con una mediana en torno al 22% del PIB.
-    -  America (AME), Asia-Pacifico (AP) y Europa Oriental y Asia Central (ECA) tienen los ingresos fiscales más bajos con poca variabilidad.
-        -  AME y AP tienen una mediana cercana al 13,5% del PIB.
-        -  ECA tiene una mediana cercana al 17% del PIB.
-    -  Medio Oriente y Norte de África (MENA) tiene una mediana alta dentro de su rango (15,5%) pero con muchos valores por debajo de la mediana.
-    -  A África Subsahariana (SSA) le ocurre lo contrario, con una mediana baja (14%) pero con muchos valores por encima de la mediana.
-
-
-2. **Histograma**
-    -  La distribución del ingreso fiscal por región muestra una asimetría positiva y un ligero sesgo hacia la derecha.
-    -  La mediana del ingreso fiscal se sitúa en torno al 16% del PIB.
-    -  Se observan valores atípicos en la distribución, tanto en valores bajos como altos.
-
-## Mapa de Calor de Correlaciones {#mapa-de-calor-correlaciones}
-```{r heatmap 1, echo=TRUE, warning=FALSE}
-
-# Seleccionar las columnas relevantes para el mapa de calor
-df_heatmap <- df_melted %>%
-  select(inflation, score, GDP, GDPGrowth, PopTotal, TaxRevenue) %>%
-  drop_na()
-
-# Calcular la matriz de correlación
-cor_matrix <- cor(df_heatmap, method = "spearman", use = "complete.obs")
-
-# Crear el mapa de calor
-heatmap_plot <- ggcorrplot(cor_matrix,
-                           method = "circle",
-                           type = "upper",
-                           lab = TRUE,
-                           lab_size = 4,
-                           colors = c("#ff0000", "#6fff00", "#6600ff"),
-                           title = "Mapa de Calor de Correlaciones")
-
-# Guardar el mapa de calor como un archivo PNG
-# ggsave("heatmap.jpg", plot = heatmap_plot, width = 14, height = 14, units = "cm")
-knitr::include_graphics("heatmap.jpg")
+       y = "Frecuencia") +
+  scale_fill_brewer(palette = "Dark2") +
+  geom_vline(xintercept = median(df$ingresos_fiscales[df$año == 1995], na.rm = TRUE), 
+             linetype = "dashed", color= "#1b9e77", size = 1.5) +
+  geom_vline(xintercept = median(df$ingresos_fiscales[df$año == 2022], na.rm = TRUE), 
+             linetype = "dashed", color= "#e6ab02", size = 1.5) +
+  xlim(0, 70)
 
 ```
 
-### Análisis del Mapa de Calor de Correlaciones
+#### Observaciones:
 
-1. **Correlaciones Positivas**
-    -  La correlación entre la `puntuación de corrupción` y los `ingresos fiscales` es muy positiva, lo que indica que los países con mayores presiones fiscales tienden a tener una menor percepción de corrupción.
-    -  Como se esperaba la correlación entre el `PIB` y la `población total` es muy fuerte.
-    -  `Crecimiento del PIB` e `inflación`, lo que indica que la generación de riqueza provoca un poco de inflación.
-    -  `CPI` y `PIB`, lo que indica que a mayor producción menor percepción de corrupción.
+1.  **Evolución de la Distribución**:
 
-2. **Correlaciones Negativas**
-    - `Ingreso fiscal` e `Inflación`, lo que indica que los países con inflacion recurrente tienden a ingresar un porcentaje menor del PIB.
-    - `Inflación` y `PIB`, lo que indica que a mayor inflación menor producción.
-    - `CPI` y `Población total`, lo que indica que a mayor población menor percepción de corrupción.
-    - `CPI` y `Crecimiento del PIB`, lo que indica que a mayor crecimiento menor percepción de corrupción.
-    - `PIB` y `Crecimiento del PIB`, lo que indica que cuanto mayor es el PIB más dificil es mantener el ritmo de crecimiento.
-    - `Crecimiento del PIB` e `Ingresos fiscales`, lo que indica que a mayor crecimiento menor presión fiscal.
-    - Fuerte correlación entre `Población total` e `Ingresos fiscales`, lo que indica que a mayor población menor presión fiscal.
+    -   1995: Está más concentrada con una asimetría positiva, indicando valores más pequeños y menor variabilidad, aunque se observa un
+        máximo local en torno al 45%.
+    -   2022: la distribución se ha ampliado desplazando su máximo absoluto hacia la derecha y deshaciéndose así de esa asimetría tan
+        pronunciada, ha habido un aumento en la variabilidad pero también un aumento generalizado.
+
+2.  **Medianas**:
+
+    -   1995: 23.38%
+    -   2022: 27.75%
+
+3.  **Evolución del lineplot**:
+
+    -   **Estabilidad:**
+
+        -   Desde 1995 hasta 2000 no se observa ninguna tendencia.
+
+    -   **Inicio del Aumento**:
+
+        -   En 2001 surge una subida notoria que se desinfla hasta 2003.
+
+        -   De 2003 hasta 2008 se observa una tendencia alcista que finaliza en una subida en la recaudación de casi el 6.5% del PIB
+            mundial.
+
+    -   **Caída Post-2008**:
+
+        -   Hasta 2011, hay una caída en el ingreso fiscal de 3 puntos sobre el PIB. Este descenso refleja el impacto de la crisis
+            financiera.
+
+    -   **Fluctuaciones Posteriores**:
+
+        -   Posterior a la caída, se inicia otra tendencia al alza menos agresiva pero con mucha variabilidad al inicio.
+
+    -   **Covid**:
+
+        -   La subida paulatina llegó a su fin con la pandemia provocando un descenso en la recaudación seguido de un incremento del doble
+            que la caída.
+
+## Análisis de la Correlación entre la Puntuación de Corrupción y la Inflación {#analisis-de-la-correlacion-entre-la-puntuacion-de-corrupcion-y-la-inflacion}
+
+### Calculo de valores medianos de inflación y medios de puntuación de corrupción {#calculo-inflacion-cpi}
+
+```{r Correlación Inflación CPI1}
+# Calculo los valores medios de inflación y puntuación de corrupción por país
+df_avg <- df %>%
+    group_by(pais, region) %>% 
+    summarise(
+        inflacion = median(inflacion, na.rm = TRUE),
+        cpi = mean(cpi, na.rm = TRUE), .groups = "drop"
+    ) %>%
+    arrange(region, pais)
     
-3. **Correlaciones Neutras**
-    - Las siguientes variables no tienes apenas correlación entre ellas:
-        - `Inflación` y `Población total`.
-        - `PIB` e `Ingresos fiscales`.
-        - `Crecimiento del PIB` y `Población total`.
+# Nota1: ordeno por región y país para que el hue siga el mismo orden que el resto
+# Nota2: utilizo la mediana para la inflación para evitar que valores extremos como los de Bulgaria y Venezuela ya mencionados.
+```
+
+### Visualización de la correlación {#visualizacion-correlacion}
+
+```{r Correlación Inflación CPI2}
+# Crear el scatter plot para visualizar la correlación entre inflación y puntuación de corrupción
+# Crear el scatter plot con una línea de regresión única para todas las regiones pero sin el scatter (Quiero una única linea de regresión)
+G_inf_corr <- ggplot(df_avg, aes(x = inflacion, y = cpi, color = region)) +
+    geom_point(size = 5) +
+    geom_smooth(method = "lm", se = FALSE, linetype = "dashed", size = 2.5, color = "black", formula = y ~ x) +
+    scale_color_brewer(palette = "Dark2") +
+    labs(
+        title = "Correlación entre Inflación y Puntuación de Corrupción por País",
+        x = "Inflación Mediana",
+        y = "Puntuación de Corrupción Promedio",
+        color = "Región"
+    )
+print(G_inf_corr)
+```
+
+#### Observaciones:
+
+1.  **Tendencia General**:
+    -   Existe una tendencia negativa entre la inflación y la puntuación de corrupción. Esto sugiere que a medida que aumenta la inflación,
+        la puntuación de corrupción tiende a disminuir, indicando mayores niveles de corrupción.
+2.  **Regiones con Alta Inflación**:
+    -   Las regiones como Latinoamérica (AME) y África Subsahariana (SSA) muestran una mayor dispersión en los valores de inflación, con
+        algunos países experimentando inflaciones extremadamente altas. Estos países también tienden a tener puntuaciones de corrupción más
+        bajas, lo que indica altos niveles de corrupción.
+3.  **Regiones con Baja Inflación**:
+    -   Europa Occidental, la Union Europea(WE/EU) y Asia-Pacífico (AP) muestran inflaciones relativamente bajas y puntuaciones de
+        corrupción más altas, lo que indica menores niveles de corrupción. Esto sugiere una mejor gestión económica y políticas más
+        efectivas contra la corrupción en estas regiones.
+4.  **Línea de Tendencia**:
+    -   La línea de tendencia discontinua en el gráfico refuerza la relación negativa entre la inflación y la puntuación de corrupción.
+        Aunque hay excepciones, la mayoría de los puntos siguen esta tendencia.
+5.  **Valores Atípicos**:
+    -   Se eliminaron los valores atípicos de inflación (percentil 95) para obtener una representación más clara de la tendencia general.
+        Los valores extremadamente altos de inflación empeoraban la visualización de la relación entre las variables.
+
+### Coeficiente de Correlación de Spearman's Rank {#spearman}
+
+#### ¿Por qué este coeficiente?
+
+Utilizo este método debido a que los datos no siguen una distribución normal y hay valores extremos.
+
+#### Calculo
+
+```{r Coeficiente Spearman, echo=TRUE, warning=FALSE}
+# Calcular el coeficiente de correlación de Spearman
+corr_test <- cor.test(df$inflacion, df$cpi,
+                      method = "spearman", use = "complete.obs",
+                      exact = FALSE)
+# Nota: 
+# Nota: Me saltaba el error de que no era posible calcular el coeficiente exacto, por lo que lo he puesto en FALSE, es decir, que no se calcula exactamente.
+
+# Definir el nivel de significancia
+alpha <- 0.05
+
+# Mostrar los resultados
+cat("Coeficiente de Correlación de Spearman's Rank:", corr_test$estimate, "\n")
+if (corr_test$p.value < alpha) {
+  cat("p-valor:", corr_test$p.value, ", Se rechaza la hipótesis nula\n")
+} else {
+  cat("p-valor:", corr_test$p.value, ", No se rechaza la hipótesis nula\n")
+}
+```
+
+#### Resultados: {#resultados}
+
+El Coeficiente de Correlación de Spearman's Rank calculado entre las columnas `inflation` y `cpi` ha arrojado los siguientes resultados:
+
+-   **Coeficiente de Correlación de Spearman's Rank**: -0.4098749
+-   **p-valor**: 6.571181e-165
+
+#### Interpretación: {#interpretacion}
+
+1.  **Coeficiente de Correlación**:
+    -   El valor del coeficiente de correlación de Spearman es -0.4098749, lo que indica una correlación negativa moderada entre la
+        inflación y la puntuación de corrupción.
+    -   Esto sugiere que, en general, a medida que aumenta la inflación tambien existe una mayor percepción de la corrupción.
+2.  **p-valor**:
+    -   El **p-valor** obtenido es extremadamente bajo, lo que es mucho menor que el nivel de significancia comúnmente utilizado (**α** =
+        0.05). Esto significa que podemos rechazar la hipótesis nula de que no existe correlación entre la inflación y la puntuación de
+        corrupción. En otras palabras, la correlación observada es estadísticamente significativa.
+
+### Visualización de la Correlación e Inflación mediana por Año {#analisis-matriz-correlacion}
+
+```{r correlacion por año, echo=TRUE, warning=FALSE}
+# Calcular la correlación entre 'inflation' y 'score' por año
+correlation_by_year <- df %>%
+    group_by(año) %>% 
+    summarise(correlation = cor(inflacion, cpi, method = "spearman", use = "complete.obs"))
+# Crear un barplot de la correlación por año
+ggplot(correlation_by_year, aes(x = año)) +
+    geom_bar(aes(y = correlation, fill = correlation), stat = "identity", color = "white") +
+
+    scale_fill_gradient2(low = "#ff0000", high = "#77ff00", mid = "#6600ff", midpoint = -0.15) +
+
+    geom_bar(data = df %>% group_by(año) %>% summarise(median_inflation = median(inflacion, na.rm = TRUE)),
+              aes(y = median_inflation / 10), stat = "identity", fill = 'blue', alpha = 0.3) +
+
+        geom_text(data = df %>% group_by(año) %>% summarise(median_inflation = median(inflacion, na.rm = TRUE)),
+              aes(y = median_inflation / 10, label = round(median_inflation, 2)), vjust = -0.5, size = 4, color = "#000000") +
+
+    geom_text(aes(y = correlation, label = round(correlation, 2)), vjust = 1.1, size = 4) +
+    
+    scale_color_brewer(palette = "Dark2") +
+
+    labs(title = "Correlación entre Inflación y Puntuación de Corrupción por Año",
+         x = "Año",
+         y = "              Correlación          Inflación Mediana (Escala 1:10)",
+         fill = "Correlación") 
+```
+
+**Nota**: El CPI promedio anual no tiene apenas varianza, situandose entre 40 y 43,5 puntos salvo en 1995 que llegó a alcanzar los 60
+puntos, que fueron bajando paulatinamente hasta el año 2003 donde comienza la estabilidad.
+
+#### Observaciones:
+
+1.  **Correlación:**
+    -   Los colores rojos indican una fuerte correlación negativa, mientras que los colores azulados indican una falta de correlación.
+    -   Se observa una tendencia general a la baja en la correlación entre la inflación y la puntuación de corrupción a lo largo de los años
+        pero con bastante varianza.
+    -   Por lo general la correlación aumenta a medida que la inflación tambien aumenta, lo que sugiere que la población percibe más
+        corrupción cuando se devalua la moneda.
+2.  **Inflación Mediana:**
+    -   La inflación mediana se muestra en azul claro en la parte inferior del gráfico.
+    -   Se observa un claro patrón de subida y bajada a lo largo de los años similar a una onda.
+    -   Picos en 1995, 2008 y 2022.
+    -   Minimos en 1999, 2001 y 2005.
+    -   Ligera tendencia a la baja, maximos y minimos locales cada vez más bajos.
+    -   El ciclo tiene una frecuencia de 13-14 años.
+3.  **Interpretación:**
+    -   La intersección de la inflación mediana y la correlación indica que la correlación es más fuerte en los años con inflación más alta.
+    -   Esto sugiere que la percepción de corrupción está más influenciada por la inflación en los años de crisis económica.
+    -   Excepción en 2022, donde la inflación es alta pero la correlación es baja, aparentemente la población no percibe corrupción en los
+        actos políticos durante la crisis del covid, apesar de que la gestión de la crisis fue muy criticada.

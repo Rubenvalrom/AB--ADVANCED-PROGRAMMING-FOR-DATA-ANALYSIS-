@@ -1,7 +1,17 @@
-div.main-container {
-  max-width: 1820px !important;
-  background-color: rgb(234, 234, 234);
+body{
+  background-color: rgb(249, 249, 249);
 }
+div.main-container {
+  max-width: 1620px !important;
+  margin: 0 auto;
+}
+
+.scroll { 
+  overflow-y: scroll; 
+  height: 350px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+} 
 h1 {
   font-size: 2.5em;
   font-weight: bold;
