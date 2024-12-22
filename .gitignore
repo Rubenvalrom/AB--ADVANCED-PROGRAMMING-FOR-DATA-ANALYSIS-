@@ -10,3 +10,4 @@
 *.Rhistory
 # Ignore .RData files
 *.RData
+.Rproj.user

@@ -44,8 +44,6 @@ library(RColorBrewer)
 library(ggcorrplot)
 library(readxl)
 library(plotly)
-library(paletteer)
-library(patchwork)
 ```
 
 ## Limpieza de datos {#limpieza-de-datos}
@@ -70,7 +68,7 @@ library(patchwork)
 ### Carga y Visualización del DataFrame de la Inflación y CPI {#carga-y-visualizacion-del-dataframe}
 
 ```{r limpieza df1 ,echo=TRUE, warning=FALSE}
-df <- read.csv("inflation_corruption_1995_2023_Ruben_Valverde.csv")
+df <- read.csv("datasets/inflation_corruption_1995_2023_Ruben_Valverde.csv")
 head(df[0:6])
 ```
 
@@ -159,7 +157,7 @@ head(df_melted)
 ### Carga, Visualización e Insercción del DataFrame de PIB
 
 ```{r}
-df_pib <- read.csv('world_development_data_interpolated.csv')[, c(1, 2, 9, 32)]
+df_pib <- read.csv("datasets/world_development_data_interpolated.csv")[, c(1, 2, 9, 32)]
 # Filtrar el DataFrame para eliminar las filas cuyo año sea anterior a 1995
 df_pib <- df_pib %>% filter(Year >= 1995)
 head(df_pib)
@@ -242,40 +240,10 @@ df <- df %>% mutate(cpi = ifelse(año >= 1995 & año <= 2011, cpi * 10, cpi))
 
 Multiplica por 10 el valor del `CPI` en los años 1995 a 2011 para corregir la escala y ajustar los valores a la nueva escala de 0 a 100.
 
-```{r}
-# Mostrar un resumen de los ingresos fiscales por país
-media_ingresos_fiscales <- df %>% drop_na(ingresos_fiscales) %>% group_by(pais) %>% summarize(media_ingresos_fiscales = mean(ingresos_fiscales, na.rm = TRUE)) %>% arrange(pais) %>% select(pais, media_ingresos_fiscales)
-```
-
-1.  **Filtrar valores NA**:
-    -   Utiliza `drop_na` para eliminar las filas en las que `ingresos_fiscales` tiene valores NA del DataFrame `df`.
-2.  **Agrupar por país**:
-    -   Agrupa los datos por la columna `pais` utilizando `group_by`.
-3.  **Calcular la media de ingresos fiscales**:
-    -   Calcula la media de `ingresos_fiscales` para cada país con `summarize`, ignorando los valores NA gracias al argumento
-        `na.rm = TRUE`.
-4.  **Ordenar por país**:
-    -   Ordena el resultado por la columna `pais` con `arrange`.
-5.  **Seleccionar columnas**:
-    -   Selecciona únicamente las columnas `pais` y `media_ingresos_fiscales` con `select`.
-
-El resultado es un DataFrame llamado `media_ingresos_fiscales` que contiene la media de los ingresos fiscales por país, ordenado
-alfabéticamente por el nombre del país.
-
-::: scroll
-```{r}
-knitr::kable(media_ingresos_fiscales)
-```
-:::
-
-Como se puede observar estos datos de presión fiscal no tienen ni pies ni cabeza, y multiplicarlos por 2 o por 3 no parece que vaya a
-resolver el problema por lo que he buscado otra fuente de datos, en este caso como se indica al inicio del documento los he extraído del
-**FMI**.
-
 ### Carga, Visualización del nuevo DataFrame de Presión Fiscal
 
 ```{r}
-df_pfisc <- read_excel("imf-dm-export-20241217.xls")
+df_pfisc <- read_excel("datasets/imf-dm-export-20241217.xls")
 head(df_pfisc)
 ```
 
@@ -412,12 +380,13 @@ Este proceso permite analizar cómo han cambiado los ingresos fiscales año tras
 #### Creación de la columna de crecimiento del PIB
 
 ```{r}
-df <- df %>%
-  arrange(pais, año) %>%
-  group_by(pais) %>%
-  mutate(
-    crecimiento_pib = ((pib / (1 + inflacion/100)) / lag(pib)) * 100 - 100
-  )
+
+# Actualizar el pib quitando la inflación acumulada
+df$pib <- df$pib / (1 + df$inflacion/100) %>% cumprod()
+
+# Calcular el crecimiento del PIB
+df$crecimiento_pib <- ((df$pib / lag(df$pib)) - 1) * 100
+
 # Imprimir el resumen del DataFrame
 summary(df)
 
@@ -1059,6 +1028,7 @@ cor.mtest <- function(mat, method) {
 }
 # Calcular los p-valores
 p_valores <- cor.mtest(df_correlacion, method = "spearman")
+p_valores
 ```
 
 1.  **Seleccionar las columnas de interés**:
@@ -1084,22 +1054,22 @@ correlaciones calculadas.
 
 #### Matriz con p-valores
 
-|                        |  Inflación  |     PIB     | Crecimiento PIB |     CPI     | Ingresos Fiscales | Variación Ingresos |
-|------------------------|:-----------:|:-----------:|:---------------:|:-----------:|:-----------------:|:------------------:|
-| **Inflación**          | 0.0000e+00  | 1.4912e-20  |   1.3397e-41    | 4.6748e-149 |    1.6206e-68     |     9.2474e-01     |
-| **PIB**                | 1.4912e-20  | 0.0000e+00  |   3.7233e-02    | 1.2851e-124 |    6.8243e-92     |     5.1900e-01     |
-| **Crecimiento PIB**    | 1.3397e-41  | 3.7233e-02  |   0.0000e+00    | 8.9911e-01  |    1.7919e-05     |     1.4714e-13     |
-| **CPI**                | 4.6748e-149 | 1.2851e-124 |   8.9911e-01    | 0.0000e+00  |    0.0000e+00     |     5.8245e-02     |
-| **Ingresos Fiscales**  | 1.6206e-68  | 6.8243e-92  |   1.7919e-05    | 0.0000e+00  |    0.0000e+00     |     7.1308e-05     |
-| **Variación Ingresos** | 9.2474e-01  | 5.1900e-01  |   1.4714e-13    | 5.8245e-02  |    7.1308e-05     |     0.0000e+00     |
+|                                 | **Inflación** |     PIB      | Crecimiento PIB |      CPI      | **Ingresos Fiscales** | **Variación Ingresos Fiscales** |
+|:------------------:|:------------------:|:------------------:|:------------------:|:------------------:|:------------------:|:------------------:|
+|          **Inflación**          | 0.000000e+00  | 1.454934e-07 |  1.339738e-41   | 4.674756e-149 |     1.807658e-16      |          7.776325e-01           |
+|             **PIB**             | 1.454934e-07  | 0.000000e+00 |  3.702906e-02   | 4.986019e-10  |     1.848926e-02      |          3.020333e-01           |
+|       **Crecimiento PIB**       | 1.339738e-41  | 3.702906e-02 |  0.000000e+00   | 8.991133e-01  |     9.312190e-01      |          1.465782e-07           |
+|             **CPI**             | 4.674756e-149 | 4.986019e-10 |  8.991133e-01   | 0.000000e+00  |     1.134087e-153     |          2.259080e-01           |
+|      **Ingresos Fiscales**      | 1.807658e-16  | 1.848926e-02 |  9.312190e-01   | 1.134087e-153 |     0.000000e+00      |          6.034773e-04           |
+| **Variación Ingresos Fiscales** | 7.776325e-01  | 3.020333e-01 |  1.465782e-07   | 2.259080e-01  |     6.034773e-04      |          0.000000e+00           |
 
 #### Observaciones:
 
 Todos los pares de variables tienen un **p-valor** menor a 0.05 salvo 4:
 
--   Inflación y Variación de Ingresos Fiscales: 0.924
--   PIB y Variación de Ingresos Fiscales: 0.519
--   CPI y Variación de Ingresos Fiscales: 0.058
+-   Inflación y Variación de Ingresos Fiscales: 0.777
+-   PIB y Variación de Ingresos Fiscales: 0.302
+-   CPI y Variación de Ingresos Fiscales: 0.259
 -   CPI y Crecimiento del PIB: 0.899
 
 ### Visualización de la matriz de correlación
@@ -1125,48 +1095,31 @@ knitr::include_graphics("corrplot.png")
 1.  **Visualizar la matriz de correlación**:
     -   Usa `ggcorrplot` para crear una visualización de la matriz de correlación `corr_matrix`.
     -   Configura el método de visualización como "circle" para representar las correlaciones con círculos.
-    -   Establece el tipo de visualización en "full" para mostrar la matriz completa.
+    -   Establece el tipo de visualización en "full" para mostrar la matriz completa en vez de un triangulo.
     -   Activa las etiquetas de los valores de correlación con `lab = TRUE` y ajusta el tamaño de las etiquetas con `lab_size = 3`.
-    -   Define los colores de los círculos con `colors`, utilizando una paleta que va desde `#6D9EC1` (azul) a `white` (blanco) y `#E46726`
-        (naranja).
-    -   Añade un título al gráfico con `title = "Matriz de Correlación de Spearman"`.
-
-El resultado es una matriz de correlación visualmente atractiva que muestra la fuerza y la dirección de las relaciones entre las variables
-seleccionadas, utilizando círculos de diferentes tamaños y colores.
+    -   Define los colores de los círculos con `colors`.
 
 #### Observaciones (p-valor \< 0.05):
 
 **Pares con correlación negativa:**
 
--   Inflación y CPI (-0.4500): Indica una fuerte correlación negativa entre la inflación y el Índice de Percepción de Corrupción.
-
--   Inflación e Ingresos Fiscales (-0.3134): Indica una correlación negativa moderada entre la inflación y los ingresos fiscales.
-
--   Inflación y PIB (-0.1817): Indica que hay una correlación negativa débil entre la inflación y el PIB.
-
--   Inflación y Crecimiento PIB (-0.1491): Indica que existe una correlación negativa débil entre la inflación y el crecimiento del PIB.
+-   Inflación y CPI (-0.83): Correlación muy fuerte.
+-   Inflación y PIB (-0.79): Correlación fuerte.
+-   Inflación y Crecimiento PIB (-0.31): Correlación moderada.
+-   Inflación e Ingresos Fiscales (-0.25): Correlación moderada.
 
 **Pares sin correlación:**
 
--   PIB y Crecimiento PIB (0.0153): Indica que hay una correlación muy débil y positiva entre el PIB y el crecimiento del PIB.
-
--   Ingresos Fiscales y Variación Ingresos (0.0525): Indica una correlación positiva muy débil entre los ingresos fiscales y la variación de
-    ingresos.
-
--   Crecimiento PIB e Ingresos Fiscales (0.0597): Indica una correlación positiva débil entre el crecimiento del PIB y los ingresos
-    fiscales.
+-   PIB y Variación Ingresos (0.18): Correlación muy débil y positiva.
+-   CPI y Variación Ingresos (0.23): Correlación débil y positiva.
 
 **Pares con correlación positiva:**
 
--   Crecimiento PIB y Variación Ingresos (0.1224): Indica una correlación positiva débil entre el crecimiento del PIB y la variación de
-    ingresos.
-
--   PIB e Ingresos Fiscales (0.3105): Indica una correlación positiva moderada entre el PIB y los ingresos fiscales.
-
--   PIB y CPI (0.4118): Indica una correlación positiva fuerte entre el PIB y el Índice de Percepción de Corrupción.
-
--   CPI e Ingresos Fiscales (0.6171): Indica una fuerte correlación positiva entre el Índice de Percepción de Corrupción y los ingresos
-    fiscales.
+-   Crecimiento PIB e Ingresos Fiscales (0.28): Correlación débil.
+-   CPI e Ingresos Fiscales (0.34): Correlación débil.
+-   Ingresos Fiscales y Variación Ingresos (0.48): Correlación moderada.
+-   PIB e Ingresos Fiscales (0.51): Correlación moderadamente fuerte.
+-   PIB y CPI (0.72): Correlación muy fuerte.
 
 ## Conclusiones
 

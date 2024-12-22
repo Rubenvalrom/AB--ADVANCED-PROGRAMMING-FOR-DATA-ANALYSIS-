@@ -1,6 +1,0 @@
-"0","# Al ejecutar el gráfico previamente se podia observar que el formato del CPI cambió en 2012, siendo 100 la puntuación máxima en lugar de 10."
-"0","df_melted %>%"
-"0","    filter(year %in% c(2010, 2011, 2012, 2013)) %>%"
-"0","    group_by(region, year) %>%"
-"0","    summarise(score = mean(score, na.rm = TRUE), .groups = ""drop"") %>%"
-"0","    head(4)"
