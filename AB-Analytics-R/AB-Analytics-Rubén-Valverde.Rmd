@@ -1,5 +1,5 @@
 ---
-title: "Impacto de la inflación en la macroeconomia"
+title: "Impacto de la inflación en la Macroeconomia"
 author: "Rubén Valverde Romero"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -20,22 +20,27 @@ y la corrupción que perciben los ciudadanos.
 
 ### Origen de los Datos {#obtencion-de-los-datos}
 
-Los datos utilizados en este análisis provienen de 3 fuentes principales:
+Los datos utilizados en este análisis provienen de 2 fuentes:
 
 -   **Inflación**: Los datos de inflación anual por país y región se obtuvieron del [Fondo Monetario
     Internacional](https://www.imf.org/external/datamapper/NGDP_RPCH@WEO/OEMDC/ADVEC/WEOWORLD "Fondo Monetario Internacional").
 
--   **Índice de Percepción de Corrupción (CPI)**: Los datos del CPI se obtuvieron de
-    [transparency.org](https://www.transparency.org/en/ "transparency.org"), una organización sin fines de lucro que publica anualmente el
-    índice de percepción de corrupción.
-
--   **PIB**: Los datos que tratan sobre producto interior bruto provienen de
-    [Kaggle](https://www.kaggle.com/datasets/samybaladram/databank-world-development-indicators).
+-   **PIB**: Los datos que tratan sobre producto interior bruto provienen del [Fondo Monetario
+    Internacional](https://www.imf.org/external/datamapper/NGDPD@WEO/WEOWORLD "Fondo Monetario Internacional").
 
 -   **Ingreso Fiscal**: Los datos de presión fiscal provienen del [Fondo Monetario
     Internacional](https://www.imf.org/external/datamapper/rev@FPP/USA/FRA/JPN/GBR/SWE/ESP/ITA/ZAF/IND/URY/VEN "Fondo Monetario Internacional").
 
-```{r librerias, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+-   **PIB per Capita**: Los datos de PIB per capita provienen del [Fondo Monetario
+    Internacional](https://www.imf.org/external/datamapper/NGDPDPC@WEO/OEMDC/ADVEC/WEOWORLD "Fondo Monetario Internacional").
+
+-   **Índice de Percepción de Corrupción (CPI)**: Los datos del CPI se obtuvieron de
+    [transparency.org](https://www.transparency.org/en/ "Transparency.org"), una organización sin fines de lucro que publica anualmente el
+    índice de percepción de corrupción.
+
+## Extracción de Datos {#extraccion-de-datos}
+
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
 library(tidyr)
 library(dplyr)
 library(ggplot2)
@@ -44,1102 +49,502 @@ library(RColorBrewer)
 library(ggcorrplot)
 library(readxl)
 library(plotly)
+library(scales)
+library(reshape2)
+library(corrplot)
+library(stringdist)
 ```
 
-## Limpieza de datos {#limpieza-de-datos}
+### Importación de Datos del FMI {#importacion-de-datos}
 
-### Obtención del DataFrame de Inflación y CPI
+```{r message=FALSE, warning=FALSE}
 
-1.  Descarga de los datasets de CPI de todos los años disponibles y el de Inflación, que afortunadamente incluía todos los años.
-    Posteriormente se unieron basándose en dos columnas distintas, según el caso podía ser el `ISO` o el `nombre` del país. Con frecuencia
-    la ortografía de un país variaba de uno a otro.
+# Inflación
+inflacion <- read_excel("datasets/imf-dm-export-inflacion.xlsx")[, c(-2, -3)]
+head(inflacion[0:2])
 
-2.  Creación de 2 arrays con los nombres de los países
+# PIB
+pib <- read_excel("datasets/imf-dm-export-pib.xls")
+head(pib[0:2])
 
-3.  Creación y de 1 array con los nombres que no coinciden
+# Ingreso Fiscal
+ingreso_fiscal <- read_excel("datasets/imf-dm-export-presion-fiscal.xls")
+head(ingreso_fiscal[0:2])
 
-4.  En vez de revisarlo manualmente le pase el array a Llama 3.1 varias veces hasta obtener una lista con todos los países que aparecen en
-    ambos datasets pero con distinto nombre
+# PIB per Capita
+pib_per_capita <- read_excel("datasets/imf-dm-export-pib-per-capita.xls")
+head(pib_per_capita[0:2])
 
-5.  Con esa lista se cambia la ortografía del nombre de los países del segundo dataset a los del primero
-
-6.  Se realiza un merge con el nombre del país como columna en común.
-
-### Carga y Visualización del DataFrame de la Inflación y CPI {#carga-y-visualizacion-del-dataframe}
-
-```{r limpieza df1 ,echo=TRUE, warning=FALSE}
-df <- read.csv("datasets/inflation_corruption_1995_2023_Ruben_Valverde.csv")
-head(df[0:6])
 ```
 
-Se carga y muestra un archivo CSV con los datos de inflación y corrupción. *Nota: El resto de columnas son repeticiones de las columnas 3, 4
-y 5 por lo que mostrarlas no aportan más información y empeoran la estética del documento.*
+### Función para formatear los df del FMI {#funcion-fmi}
 
-#### Reemplazo de Valores "no data" por NA {#reemplazo-de-valores-no-data-por-na}
+```{r message=FALSE, warning=FALSE}
 
-```{r limpieza df2 ,echo=TRUE, warning=FALSE}
-# Contar valores "no data" en cada columna
-inflation <- df[, grepl("inflation", names(df))]
-no_data_count <- colSums(inflation == "no data", na.rm = TRUE)
-print(paste("Hay un total de", sum(no_data_count), "valores 'no data'"))
+# Función para formatear los datos del FMI
 
-# Reemplazar los valores "no data" por NA en todo el DataFrame porque da problemas al conteo
-df[df == "no data"] <- NA
-```
-
-1.  **Contar valores "no data" en cada columna:**
-    -   Selecciona las columnas del DataFrame `df` que contienen la palabra "inflation" en su nombre y las guarda en un nuevo DataFrame
-        llamado `inflation`.
-    -   Utiliza la función `colSums` para contar los valores que son iguales a "no data" en cada columna del DataFrame `inflation`,
-        ignorando los valores NA.
-    -   Imprime el total de valores "no data" encontrados en todas las columnas seleccionadas.
-2.  **Reemplazar los valores "no data" por NA en todo el DataFrame:**
-    -   Estos valores causan problemas al realizar el conteo o análisis de datos.
-
-#### Conversión de Columnas a Numérico {#conversion-de-columnas-a-numerico}
-
-```{r limpieza df3 ,echo=TRUE, warning=FALSE}
-# Convertir las columnas de inflación de 1995 a 2023 a valores numéricos
-for (year in 1995:2023) {
-  column <- paste("inflation", year, sep = "_")
-  df[[column]] <- as.numeric(df[[column]])
-}
-```
-
-1.  **Iterar sobre un rango de años**:
-    -   Utiliza un bucle `for` para iterar desde el año 1995 hasta el año 2023.
-2.  **Generar nombres de columnas**:
-    -   Para cada año en el rango, crea el nombre de la columna correspondiente utilizando `paste` para concatenar la palabra "inflation"
-        con el año, separándolos con un guion bajo.
-3.  **Convertir valores a numéricos**:
-    -   Para cada columna generada, convierte los valores a tipo numérico utilizando `as.numeric`, asegurándose de que los datos en estas
-        columnas sean tratados como números en lugar de cadenas de texto.
-
-Este proceso garantiza que todas las columnas de inflación desde 1995 hasta 2023 contengan valores numéricos.
-
-#### Conteo de valores NA {#conteo-de-valores-na}
-
-```{r limpieza df4 ,echo=TRUE, warning=FALSE}
-# Contar y mostrar el número de valores nulos por columna
-print(paste("Hay un total de", sum(is.na(df)), "valores nulos"))
-```
-
-Suma y muestra el total de valores nulos en el DataFrame.
-
-#### Formateo del DataFrame {#formateo-del-dataFrame}
-
-```{r limpieza df5 ,echo=TRUE, warning=FALSE}
-# Transformar el DataFrame de formato ancho a formato largo para poder analizar los datos de inflación, puntuación y rango a lo largo del tiempo posteriormente
-df_melted <- df %>%
-  pivot_longer(cols = starts_with("inflation_") | starts_with("score_"),
-  names_to = c(".value", "year"),
-  names_sep = "_") %>%
-select(country, iso, region, year, inflation, score) #Nota el ranking no se llega a utilizar en este análisis asi que lo elimino
-
-# Convertir las columnas 'inflation', 'score' y 'year' a tipo numérico en el DataFrame df_melted
-df_melted <- df_melted %>%
-    mutate(across(c(inflation, score, year), as.numeric))
-    df_melted <- df_melted %>% arrange(year, country)
-head(df_melted)
-```
-
-1.  **Transformar el DataFrame a formato largo**:
-    -   Utiliza `pivot_longer` para convertir el DataFrame de un formato ancho a un formato largo, seleccionando las columnas que comienzan
-        con "inflation\_" o "score\_".
-    -   Asigna los nombres a las nuevas columnas `inflation` y `score`, y extrae el año de los nombres de las columnas originales.
-    -   Selecciona las columnas `country`, `iso`, `region`, `year`, `inflation` y `score`, omitiendo la columna `ranking`, no la utilizaré
-        en el análisis.
-2.  **Convertir columnas a tipo numérico**:
-    -   Usa `mutate` con `across` para convertir las columnas `inflation`, `score` y `year` a tipo numérico.
-3.  **Ordenar el DataFrame**:
-    -   Ordena el DataFrame `df_melted` por `year` y `country` utilizando `arrange`.
-
-### Carga, Visualización e Insercción del DataFrame de PIB
-
-```{r}
-df_pib <- read.csv("datasets/world_development_data_interpolated.csv")[, c(1, 2, 9, 32)]
-# Filtrar el DataFrame para eliminar las filas cuyo año sea anterior a 1995
-df_pib <- df_pib %>% filter(Year >= 1995)
-head(df_pib)
-```
-
-1.  **Lectura y selección de columnas**:
-    -   Importa el archivo CSV `world_development_data_interpolated.csv` en un DataFrame `df_pib`.
-    -   Selecciona las columnas en las posiciones 1, 2, 9 y 32, resultando en un subconjunto del DataFrame original.
-2.  **Filtrado por año**:
-    -   Filtra `df_pib` para mantener solo las filas donde el valor de la columna `Year` es mayor o igual a 1995.
-
-#### Unión de ambos DataFrame
-
-```{r}
-# Crear una lista de correspondencias entre los nombres de países en ambos datasets
-country_corrections <- c(
-    "United States" = "United States of America",
-    "Russia" = "Russian Federation",
-    "South Korea" = "Korea, Rep.",
-    "North Korea" = "Korea, Dem. People's Rep.",
-    "Iran" = "Iran, Islamic Rep.",
-    "Egypt" = "Egypt, Arab Rep.",
-    "Vietnam" = "Viet Nam",
-    "Syria" = "Syrian Arab Republic",
-    "Venezuela" = "Venezuela, RB",
-    "Yemen" = "Yemen, Rep.",
-    "Gambia" = "Gambia, The",
-    "Congo (Kinshasa)" = "Congo, Dem. Rep.",
-    "Congo (Brazzaville)" = "Congo, Rep.",
-    "Tanzania" = "Tanzania, United Rep.",
-    "Laos" = "Lao PDR",
-    "Kyrgyzstan" = "Kyrgyz Republic",
-    "Slovakia" = "Slovak Republic",
-    "Brunei" = "Brunei Darussalam",
-    "Bahamas" = "Bahamas, The",
-    "Congo" = "Congo, Rep.",
-    "Côte d'Ivoire" = "Cote d'Ivoire",
-    "Hong Kong" = "Hong Kong SAR, China",
-    "Korea (South)" = "Korea, Rep.",
-    "Saint Lucia" = "St. Lucia",
-    "Saint Vincent and the Grenadines" = "St. Vincent and the Grenadines",
-    "Taiwan, China" = "Taiwan" 
-)
-
-# Reemplazar los nombres de países en df_melted
-df_melted$country <- recode(df_melted$country, !!!country_corrections)
-
-# Reemplazar los nombres de países en df_pib
-df_pib$Country <- recode(df_pib$Country, !!!country_corrections)
-# Unir el DataFrame de inflación y corrupción con el DataFrame de PIB
-df <- df_melted %>% left_join(df_pib, by = c("country" = "Country", "year" = "Year"))
-
-# Cambiar el nombre de las columnas de inglés a español
-colnames(df) <- c("pais", "iso", "region", "año", "inflacion", "cpi", "pib", "ingresos_fiscales")
-```
-
-1.  **Crear una lista de correspondencias entre los nombres de países**:
-    -   Define una lista `country_corrections` que contiene pares de nombres de países, estableciendo correspondencias entre diferentes
-        formas de nombrar el mismo país en dos datasets.
-2.  **Reemplazar los nombres de países en `df_melted`**:
-    -   Utiliza la función `recode` para reemplazar los nombres de países en la columna `country` de `df_melted` según las correspondencias
-        definidas en `country_corrections`.
-3.  **Reemplazar los nombres de países en `df_pib`**:
-    -   Aplica el mismo reemplazo de nombres de países en la columna `Country` de `df_pib` usando `recode`.
-4.  **Unir los DataFrames**:
-    -   Usa `left_join` para combinar `df_melted` con `df_pib` en base a las columnas `country` y `year`, produciendo un nuevo DataFrame
-        `df`.
-5.  **Cambiar el nombre de las columnas**:
-    -   Renombra las columnas del DataFrame `df` al español, resultando en los nombres: `pais`, `iso`, `region`, `año`, `inflacion`, `cpi`,
-        `pib` y `ingresos_fiscales`.
-
-#### Corrección de la escala del CPI
-
-En 2011 se produce un cambio de escala en el `CPI`, aumentando el limite superior del rango a 100 en lugar de 10.
-
-```{r}
-# Multiplicar por 10 el CPI de 1995 hasta 2011
-df <- df %>% mutate(cpi = ifelse(año >= 1995 & año <= 2011, cpi * 10, cpi))
-```
-
-Multiplica por 10 el valor del `CPI` en los años 1995 a 2011 para corregir la escala y ajustar los valores a la nueva escala de 0 a 100.
-
-### Carga, Visualización del nuevo DataFrame de Presión Fiscal
-
-```{r}
-df_pfisc <- read_excel("datasets/imf-dm-export-20241217.xls")
-head(df_pfisc)
-```
-
-Se carga y muestra un archivo Excel con los datos de presión fiscal.
-
-#### Reemplazo de Valores "no data" por NA
-
-```{r,echo=TRUE, warning=FALSE}
-# Renombrar la primera columna a pais
-colnames(df_pfisc)[1] <- "pais"
-
-# Contar valores "no data" en cada columna
-no_data_count <- colSums(df_pfisc == "no data", na.rm = TRUE)
-
-print(paste("Hay un total de", sum(no_data_count), "valores no data"))
-
-# Reemplazar los valores "no data" por NA en todo el DataFrame porque da problemas al conteo
-df_pfisc[df_pfisc == "no data"] <- NA
-```
-
-1.  **Renombrar la primera columna**:
-    -   Cambia el nombre de la primera columna de `df_pfisc` a `pais`.
-2.  **Contar valores "no data" en cada columna**:
-    -   Utiliza `colSums` para contar los valores "no data" en cada columna de `df_pfisc`, ignorando los valores NA.
-3.  **Imprimir el total de valores "no data"**:
-    -   Imprime el total de valores "no data" encontrados en todas las columnas del DataFrame.
-4.  **Reemplazar los valores "no data" por NA**:
-    -   Reemplaza todos los valores "no data" en el DataFrame `df_pfisc` con NA, dado que estos valores causan problemas al realizar el
-        conteo o análisis de datos.
-
-```{r,echo=TRUE, warning=FALSE}
-# Contar y mostrar el número de valores nulos por columna
-print(paste("Hay un total de", sum(is.na(df_pfisc)), "valores nulos"))
-```
-
-Suma y muestra el total de valores nulos en el DataFrame.
-
-#### Formatear el DataFrame poniendo los años en una columna
-
-```{r,echo=TRUE, warning=FALSE}
-años <- colnames(df_pfisc)[-1]
-# Convertir las columnas de ingresos fiscales de 1995 a 2022 a valores numéricos
-df_pfisc <- df_pfisc %>% mutate_at(vars(-pais), as.numeric)
+formatear_fmi <- function(df, valor) {
   
-# Transformar el DataFrame de formato ancho a formato largo para poder unirlo correctamente con el DataFrame principal
-df_pfisc <- df_pfisc %>% pivot_longer(cols = all_of(años), names_to ="año", values_to = "ingresos_fiscales_fmi") %>% mutate(año = as.numeric(año))
-head(df_pfisc)
+  # Contar los datos nulos
+  df <- df %>% replace(df == "no data", NA)
+  print(paste("Total Nulos:", sum(is.na(df))))
+  
+  # Eliminar los datos nulos
+  df <- df %>% drop_na()
+  
+  # Seleccionar las columnas de los años
+  años <- colnames(df)[-1]
+  
+  # Cambiar el nombre de la columna de país
+  colnames(df)[1] <- "pais"
+  
+  # Convertir las columnas a valores numéricos
+  df <- df %>% mutate_at(vars(-pais), as.numeric)
+    
+  # Transformar el DataFrame de formato ancho a formato largo
+  df <- df %>% pivot_longer(cols = all_of(años)
+                            , names_to ="año", 
+                            values_to = valor) %>%
+               mutate(año = as.numeric(año))
+
+  # Convertir todas la columnas menos pais a numerico
+  df <- df %>% mutate(across(c(valor, año), as.numeric))
+  
+  # Mostrar los primeros registros y el resumen de los datos
+  print("Primeros Registros:")
+  print(head(df))
+  
+  print("Resumen de los Datos:")
+  print(summary(df))
+  
+  return(df)
+}
+
 ```
 
-1.  **Identificar los años**:
-    -   Extrae los nombres de las columnas del DataFrame `df_pfisc`, omitiendo la primera columna `pais`, y los guarda en la variable
-        `años`.
-2.  **Convertir columnas a valores numéricos**:
-    -   Utiliza `mutate_at` para convertir las columnas de ingresos fiscales desde 1995 hasta 2022 a tipo numérico, excepto la columna
-        `pais`.
-3.  **Transformar el DataFrame a formato largo**:
-    -   Emplea `pivot_longer` para transformar el DataFrame `df_pfisc` de formato ancho a formato largo, lo cual facilita su posterior unión
-        con el DataFrame principal.
-    -   Renombra las columnas resultantes a `año` e `ingresos_fiscales_fmi`.
-4.  **Convertir `año` a numérico**:
-    -   Usa `mutate` para asegurar que la columna `año` esté en formato numérico.
+### Union de los Datos del FMI {#pib}
 
-### Unión de ambos DataFrame
+```{r message=FALSE, warning=FALSE}
 
-```{r}
-# Mapear los nombres de los países en df_pfisc a los nombres de los países en df
-# Crear una lista de correspondencias entre los nombres de países en ambos datasets
-country_corrections_pfisc <- c(
-    "United States" = "United States of America",
-    "Russia" = "Russian Federation",
-    "South Korea" = "Korea, Rep.",
-    "North Korea" = "Korea, Dem. People's Rep.",
-    "Iran" = "Iran, Islamic Rep.",
-    "Egypt" = "Egypt, Arab Rep.",
-    "Vietnam" = "Viet Nam",
-    "Syria" = "Syrian Arab Republic",
-    "Venezuela" = "Venezuela, RB",
-    "Yemen" = "Yemen, Rep.",
-    "Gambia" = "Gambia, The",
-    "Congo (Kinshasa)" = "Congo, Dem. Rep.",
-    "Congo (Brazzaville)" = "Congo, Rep.",
-    "Tanzania" = "Tanzania, United Rep.",
-    "Laos" = "Lao PDR",
-    "Kyrgyzstan" = "Kyrgyz Republic",
-    "Slovakia" = "Slovak Republic",
-    "Brunei" = "Brunei Darussalam",
-    "Bahamas" = "Bahamas, The",
-    "Congo" = "Congo, Rep.",
-    "Côte d'Ivoire" = "Cote d'Ivoire",
-    "Hong Kong" = "Hong Kong SAR, China",
-    "Korea (South)" = "Korea, Rep.",
-    "Saint Lucia" = "St. Lucia",
-    "Saint Vincent and the Grenadines" = "St. Vincent and the Grenadines",
-    "Taiwan, China" = "Taiwan" 
-)
+# Formatear los datos de Inflación
+inflacion <- formatear_fmi(inflacion, "inflacion")
 
-# Reemplazar los nombres de países en df_pfisc
-df_pfisc$pais <- recode(df_pfisc$pais, !!!country_corrections_pfisc)
-df_or <- df
-# Unir df y df_pfisc a través de las columnas pais y año
-df <- df %>% inner_join(df_pfisc, by = c("pais", "año"))
+```
+
+```{r message=FALSE, warning=FALSE}
+
+# Formatear los datos del PIB
+pib <- formatear_fmi(pib, "pib")
+
+```
+
+```{r message=FALSE, warning=FALSE}
+# Formatear los datos de Ingreso Fiscal
+ingreso_fiscal <- formatear_fmi(ingreso_fiscal, "ingreso_fiscal")
+
+```
+
+```{r message=FALSE, warning=FALSE}
+# Formatear los datos de PIB per Capita
+pib_per_capita <- formatear_fmi(pib_per_capita, "pib_per_capita")
+```
+
+```{r message=FALSE, warning=FALSE}
+
+# Unir los datos del FMI
+fmi <- pib %>%
+    full_join(ingreso_fiscal, by = c("pais", "año")) %>%
+    full_join(pib_per_capita, by = c("pais", "año")) %>%
+    full_join(inflacion, by = c("pais", "año"))
+
+
+# Filtrar los datos a partir de 1995
+fmi <- fmi %>% filter(año >= 1995)
+```
+
+### Importación de Datos del CPI {#importacion-de-datos-cpi}
+
+#### Importar y unir datos del CPI de 1995 hasta 2011 {#funcion-cpi}
+
+```{r message=FALSE, warning=FALSE}
+
+cpi <- read.csv("datasets/cpi/CPI-Archive-2011.csv")[c(1,4)] 
+colnames(cpi) <- c("pais","score")
+
+for (año in 2010:1995) {
+
+  # Importar los datos del CPI
+  cpi_año <- read.csv(paste0("datasets/cpi/CPI-Archive-",año,".csv"))[c(1,4)]
+  
+  # Cambiar el nombre de la columna de país
+  colnames(cpi_año)[1] <- "pais"
+  
+  # Unir los datos del CPI
+  cpi <- cpi %>%
+    left_join(cpi_año, by = "pais", suffix = c("", año))
+}
+
+colnames(cpi)[2] <- "score2011"
+
+
+# Convertir las columnas a numérico por error al pivotar
+cpi <- cpi %>% mutate(across(starts_with("score"), as.numeric))
+
+cpi <- cpi %>% pivot_longer( cols = starts_with("score"), names_to = "año", names_prefix = "score", values_to = "cpi")
+
+# Ajustar la escala
+cpi$cpi <- cpi$cpi * 10
+
+cpi <- cpi %>% drop_na() %>% mutate(año = as.numeric(año))
+
+# Importar el resto de años
+cpi_2012_2022 <- read_excel("datasets/cpi/CPI-Archive-2012-2023.xlsx")[c(1,3,5)] 
+
+# Cambiar el nombre de las columnas
+colnames(cpi_2012_2022) <- c("pais","año", "cpi")
+
+# Pasar a numérico
+cpi_2012_2022 <- cpi_2012_2022 %>% mutate(cpi = as.numeric(cpi),
+                                          año = as.numeric(año))
+
+# Unificar los nombres con Jaro-Winkler
+
+  distancias <- stringdistmatrix(cpi$pais, cpi_2012_2022$pais, method = "jw")
+  
+  indices <- apply(distancias, 1, which.min)
+  
+  nombres_equivalentes <-  cpi_2012_2022$pais[indices]
+  
+  cpi$pais <- nombres_equivalentes
+  
+# Unir los datos del CPI verticalmente
+cpi <- rbind(cpi, cpi_2012_2022)
+```
+
+**Explicación Jaro-Winkler:**
+
+La fórmula del algoritmo **Jaro-Winkler** se basa en tres componentes principales: la coincidencia de caracteres, la transposición de
+caracteres y un factor de penalización para las diferencias en las primeras letras de las cadenas.
+
+1.  **Similitud de Jaro**:
+
+$$ S_{j} = \frac{1}{3} \left( \frac{m}{|s_1|} + \frac{m}{|s_2|} + \frac{m - t}{m} \right) $$
+
+Donde: - $s_1$ y $s_2$ son las cadenas de texto que se comparan. - $|s_1|$ y $|s_2|$ son las longitudes de las cadenas. - $m$ es el número
+de caracteres coincidentes entre las dos cadenas. - $t$ es el número de transposiciones, es decir, el número de caracteres coincidentes que
+están fuera de lugar.
+
+2.  **Similitud de Jaro-Winkler**:
+
+$$ S_{jw} =S_{j} + \ell \cdot p \cdot (1 - S_j) $$
+
+Donde:
+
+1.  $S_{j}$: Similitud de Jaro.
+2.  $\ell$: Longitud del prefijo común al inicio de las cadenas (máximo 4 caracteres).
+3.  $p$: Escalador de peso para el prefijo (normalmente $p = 0.1$).
+
+Esta fórmula combina la similitud de Jaro y un ajuste adicional premiando las coincidencias de los primeros caracteres.
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+**Ejemplo 1: "Corea" y "Korea"**
+
+**Cálculo de** $S_j$:
+
+1.  **Coincidencias (**$m$): Los caracteres coincidentes son: $o, r, e, a$ (4 caracteres).
+2.  **Longitud de las cadenas (**$|s_1|, |s_2|$): Ambas tienen longitud 5.
+3.  **Transposiciones (**$t$): Hay una transposición entre $C$ y $K$. Esto equivale a $t = 1/2 = 0.5$.
+
+Sustituyendo en la fórmula de $S_j$:
+$$ S_j = \frac{1}{3} \left( \frac{4}{5} + \frac{4}{5} + \frac{4 - 0.5}{4} \right) = \frac{1}{3} \left( 0.8 + 0.8 + 0.875 \right) = 0.825 $$
+
+**Cálculo de** $S_{jw}$:
+
+1.  **Prefijo común (**$\ell$): El prefijo común es vacío ($\ell = 0$).
+2.  **Factor de prefijo (**$p$): $p = 0.1$.
+
+$$ S_{jw} = S_j + \ell \cdot p \cdot (1 - S_j) = 0.825 + 0 \cdot 0.1 \cdot (1 - 0.825) = 0.825 $$
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+**Ejemplo 2: "Corea" y "Correa"**
+
+**Cálculo de** $S_j$:
+
+1.  **Coincidencias (**$m$): Los caracteres coincidentes son: $C, o, r, e, a$ (5 caracteres).
+2.  **Longitud de las cadenas (**$|s_1|, |s_2|$): Las longitudes son 5 y 6.
+3.  **Transposiciones (**$t$): Hay 1 transposición por el carácter extra $r$. Esto equivale a $t = 1/2 = 0.5$.
+
+Sustituyendo en la fórmula de $S_j$:
+$$ S_j = \frac{1}{3} \left( \frac{5}{5} + \frac{5}{6} + \frac{5 - 0.5}{5} \right) = \frac{1}{3} \left( 1 + 0.833 + 0.9 \right) = 0.911 $$
+
+**Cálculo de** $S_{jw}$:
+
+1.  **Prefijo común (**$\ell$): El prefijo común es $C, o, r$ ($\ell = 3$).
+2.  **Factor de prefijo (**$p$): $p = 0.1$.
+
+$$ S_{jw} = S_j + \ell \cdot p \cdot (1 - S_j) = 0.911 + 3 \cdot 0.1 \cdot (1 - 0.911) $$
+
+Resolviendo: $$ S_{jw} = 0.911 + 0.3 \cdot 0.089 = 0.911 + 0.027 = 0.938 $$
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+**Resultados:**
+
+-   "Corea" y "Korea": $S_{jw} = 0.825$.
+-   "Corea" y "Correa": $S_{jw} = 0.938$.
+
+Se puede observar que a pesar de que "Correa" tiene más caracteres al no necesitar transposiciones obtiene un mayor porcentaje de similitud.
+En este caso concreto, el algoritmo Jaro-Winkler **no** seria capaz de identificar correctamente cual de las dos palabras también da nombre
+al país.
+
+### Unir los Datos del FMI con el CPI {#unir-datos-cpi}
+
+```{r message=FALSE, warning=FALSE}
+
+# Cambio el nombre del pais de "Korea, Republic of" a "Korea (South)"
+
+fmi$pais <- ifelse(fmi$pais == "Korea, Republic of", "Korea (South)", fmi$pais)
+
+# Calcula la distancia de similitud entre los nombres de los países
+distancias <- stringdistmatrix(fmi$pais, cpi$pais, method = "jw")
+
+# Encuentra los nombres más cercanos
+indices <- apply(distancias, 1, which.min)
+similitudes <- apply(distancias, 1, min)
+nombres_equivalentes <- cpi$pais[indices]
+
+# Calcula el porcentaje de error estimado
+porcentaje_error <- similitudes * 100
+
+# Añadir el porcentaje de error estimado al dataframe original
+fmi <- fmi %>%
+  mutate(porcentaje_error = porcentaje_error,
+         pais = nombres_equivalentes)
+
+# Filtrar los datos con un porcentaje de error mayor al 27.5%
+fmi <- fmi %>% filter(porcentaje_error < 27.5)
+
+# Unir los datos de inflación y CPI con los datos del FMI
+df <- cpi %>%
+  inner_join(fmi, by = c("pais", "año"))
+
+# Reordenar las columnas
+df <- df %>%
+      select(pais, año, cpi, inflacion, pib,  pib_per_capita, ingreso_fiscal) %>%
+      arrange(pais, año) 
+
+summary(df)
 head(df)
 ```
-
-1.  **Crear una lista de correspondencias entre los nombres de países**:
-    -   Define una lista `country_corrections_pfisc` que contiene pares de nombres de países, estableciendo correspondencias entre
-        diferentes formas de nombrar el mismo país en los dos datasets.
-2.  **Reemplazar los nombres de países en `df_pfisc`**:
-    -   Utiliza la función `recode` para reemplazar los nombres de países en la columna `pais` de `df_pfisc` según las correspondencias
-        definidas en `country_corrections_pfisc`.
-3.  **Unir los DataFrames**:
-    -   Crea una copia del DataFrame `df` llamada `df_or`.
-    -   Usa `inner_join` para combinar `df` con `df_pfisc` en base a las columnas `pais` y `año`, produciendo un nuevo DataFrame `df`.
-
-#### Creación de la columna variación de ingresos fiscales
-
-```{r}
-df <- df %>%
-  arrange(pais, año) %>%
-  group_by(pais) %>%
-  mutate(variacion_ingresos = ingresos_fiscales - lag(ingresos_fiscales))
-```
-
-1.  **Ordenar el DataFrame**:
-    -   Usa `arrange` para ordenar el DataFrame `df` por las columnas `pais` y `año` en orden ascendente.
-2.  **Agrupar por país**:
-    -   Emplea `group_by` para agrupar los datos por la columna `pais`, permitiendo realizar operaciones dentro de cada grupo de país.
-3.  **Calcular la variación de ingresos fiscales**:
-    -   Utiliza `mutate` para crear una nueva columna `variacion_ingresos`, que calcula la diferencia entre `ingresos_fiscales` y el valor
-        de `ingresos_fiscales` en el año anterior (`lag(ingresos_fiscales)`).
-
-Este proceso permite analizar cómo han cambiado los ingresos fiscales año tras año dentro de cada país.
-
-#### Creación de la columna de crecimiento del PIB
-
-```{r}
-
-# Actualizar el pib quitando la inflación acumulada
-df$pib <- df$pib / (1 + df$inflacion/100) %>% cumprod()
-
-# Calcular el crecimiento del PIB
-df$crecimiento_pib <- ((df$pib / lag(df$pib)) - 1) * 100
-
-# Imprimir el resumen del DataFrame
-summary(df)
-
-```
-
-1.  **Ordenar el DataFrame**:
-    -   Usa `arrange` para ordenar el DataFrame `df` por las columnas `pais` y `año` en orden ascendente.
-2.  **Agrupar por país**:
-    -   Emplea `group_by` para agrupar los datos por la columna `pais`, permitiendo realizar operaciones dentro de cada grupo de país.
-3.  **Calcular el crecimiento del PIB**:
-    -   Utiliza `mutate` para crear una nueva columna `crecimiento_pib`, que calcula el crecimiento del PIB ajustado por la inflación. Esta
-        fórmula considera el PIB del año actual dividido por el PIB del año anterior (ajustado por la inflación), menos 100 para obtener el
-        porcentaje de crecimiento.
-
-Este proceso permite evaluar el crecimiento del PIB de cada país año tras año, teniendo en cuenta la inflación.
-
-::: scroll
-```{r}
-knitr::kable(df)
-```
-:::
 
 ### Descripción de los datos del DataFrame Final {#descripcion-del-dataframe-transformado}
 
 1.  **País**:
-    -   Nombre del país al que pertenecen los datos.
     -   Tipo de dato: Carácter.
-2.  **ISO**:
-    -   Código de país de tres letras.
-    -   Tipo de dato: Carácter.
-3.  **Región**:
-    -   Región geográfica a la que pertenece el país.
-    -   Tipo de dato: Carácter.
-4.  **Año**:
-    -   Año al que corresponden los datos.
+    -   Descripción: Nombre del país.
+2.  **Año**:
     -   Tipo de dato: Numérico.
-5.  **Inflación**:
-    -   Tasa de inflación anual del país en un año determinado.
-    -   Tipo de dato: Numérico.
-    -   Descripción: Representa la perdida de poder adquisitivo de los ciudadanos.
-6.  **Puntuación de Corrupción (CPI)**:
-    -   Índice de Percepción de Corrupción (CPI) del país en un año determinado.
+    -   Descripción: Año al que pertenecen los datos.
+3.  **Puntuación de Corrupción (CPI)**:
     -   Tipo de dato: Numérico.
     -   Descripción: Representa la percepción de corrupción en el sector público de un país en una escala de 0 a 100, donde 0 indica una
         alta percepción de corrupción y 100 indica una baja percepción de corrupción.
-7.  **PBI**:
-    -   Producto Interno Bruto (PIB) en dólares estadounidenses.
+4.  **Inflación**:
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa la perdida de poder adquisitivo de los ciudadanos.
+5.  **PIB:**
     -   Tipo de dato: Numérico.
     -   Descripción: Representa el valor total de todos los bienes y servicios producidos en un país en un año determinado.
+6.  **PIB per Capita**:
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa el valor total de todos los bienes y servicios producidos en un país en un año determinado dividido por la
+        población total del país.
+7.  **Crecimiento del PIB per Capita**:
+    -   Tipo de dato: Numérico.
+    -   Descripción: Representa el crecimiento del PIB per Capita en un año determinado.
 8.  **Ingresos_fiscales**:
-    -   Ingresos fiscales totales del país.
     -   Tipo de dato: Numérico.
     -   Descripción: Representa la cantidad total de ingresos recaudados por el estado a través de impuestos, expresado en % del PIB. No
         tiene en cuenta el endeudamiento.
-9.  **Variación_Ingresos**:
-    -   Variación de los ingresos fiscales de un año a otro.
-    -   Tipo de dato: Numérico.
-    -   Descripción: Representa el cambio en los ingresos fiscales (% PIB) de un año a otro.
-10. **Crecimiento_PIB**:
-    -   Tasa de crecimiento del Producto Interno Bruto (PIB) ajustada por inflación.
-    -   Tipo de dato: Numérico.
-    -   Descripción: Representa el cambio porcentual en el PIB de un año a otro ajustado por la inflación.
 
-## Ajuste de los Gráficos y Creación de Funciones {#ajuste-de-los-gráficos-y-creación-de-funciones}
+## Análisis Exploratorio de Datos {#eda}
 
-#### **Agregar un tema a los gráficos**:
-
-``` r
-theme_set(theme_bw())
-```
-
-1.  **Establecer el tema del gráfico**:
-    -   Usa `theme_set` para aplicar el tema `theme_bw()` (tema de fondo blanco) a todos los gráficos de ggplot2.
-
-#### **Hacer las letras más grandes y los títulos centrados**:
-
-``` r
-theme_update(
-    plot.title = element_text(size = 16, hjust = 0.5),
-    axis.title = element_text(size = 14),
-    axis.text = element_text(size = 11),
-    legend.title = element_text(size = 13),
-    legend.text = element_text(size = 11)
-    )
-```
-
-1.  **Actualizar tema**:
-    -   Utiliza `theme_update` para modificar aspectos específicos del tema actual.
-2.  **Ajustar los textos:**
-    -   Usa `element_text(size = n)` para establecer el tamaño de la letra de los distintos textos del gráfico.
-
-### Generar lineplots
-
-#### Crear el df agrupado
+### Numero de Datos por año {#falta-de-datos}
 
 ```{r}
-# Function to create the summarized dataframe
-df_line_plot <- function(col, metodo){
-   df_avg <- df %>%
-    group_by(region, año) %>%
-    summarise(!!col := metodo(.data[[col]], na.rm = TRUE), .groups = "drop") %>%
-    ungroup()
-   
-  df_avg
-}
+# Contar el número de nulos por año
+df_año <- df %>% group_by(año) %>% summarise(n = n()) 
+df <- df %>% ungroup()
+
+año_plot <-  ggplot(df_año, aes(x = año, y = n)) +
+  geom_bar(stat = "identity", fill = "#d2c0e8", color="#978aa7") +
+  labs(title = "Número de Datos por Año",
+       x = "Año",
+       y = "Número de Datos")
+año_plot <- ggplotly(año_plot)
+año_plot
+
 ```
 
-1.  **Definir la función**:
-    -   La función `df_line_plot` toma dos argumentos: `col` y `metodo`.
-2.  **Agrupar por variables específicas**:
-    -   Utiliza `group_by` para agrupar los datos por `region` y `año`.
-3.  **Calcular el valor resumido**:
-    -   Usa `summarise` para calcular el valor resumido de la columna `col` mediante el método `metodo`, manejando valores nulos con
-        `na.rm = TRUE`.
-4.  **Eliminar agrupación**:
-    -   Emplea `ungroup` para quitar la agrupación después de la summarización.
-5.  **Retornar el dataframe resumido**:
-    -   Devuelve el dataframe `df_avg`.
 
-#### Crear el gráfico
+### Visualización de los Datos en el tiempo {#visualizacion-de-los-datos}
 
-```{r}
-# Function to create the line plot
-line_plot <- function(df, col){
-  plot <- ggplot(df, aes(x = año, y = .data[[col]], color = region)) +
-    geom_line(size = 1.5) +
-    geom_point(size = 3) +
-    scale_color_brewer(palette = "Dark2")
-  
-  plot
-}
+```{r fig.height= 6}
+# Seleccionar las columnas de interés
+# Agrupar y calcular las medias por año
+df_avg <- df %>%
+  group_by(año) %>%
+  summarise(
+    cpi = mean(cpi, na.rm = TRUE),
+    inflacion = mean(inflacion, na.rm = TRUE),
+    pib = mean(pib, na.rm = TRUE),
+    pib_per_capita = mean(pib_per_capita, na.rm = TRUE),
+    ingreso_fiscal = mean(ingreso_fiscal, na.rm = TRUE), 
+    .groups = "drop"
+  )
+
+# Transformar a formato largo
+df_avg_valores_llaves <- df_avg %>%
+  pivot_longer(cols = -año, names_to = "variable", values_to = "valor")
+
+# Crear el gráfico
+plot <- ggplot(df_avg_valores_llaves, aes(x = año, y = valor, color = variable)) +
+  geom_line() +
+  geom_point(size = 2) +
+  facet_wrap(~variable, scales = "free") +
+  labs(
+    title = "Evolución de las Variables Numéricas (1995-2022) ",
+    x = "Año",
+    y = ""
+  ) +
+  theme(legend.position = "none",
+        panel.spacing.x = unit(2, "lines"),
+        panel.spacing.y = unit(4, "lines"))
+
+# Convertir a objeto plotly
+ggplotly(plot)
+
 ```
 
-1.  **Definir la función**:
-    -   La función `line_plot` toma dos argumentos: `df` y `col`.
-2.  **Crear el gráfico de líneas**:
-    -   Usa `ggplot` con `df` y `aes` para mapear `año` al eje x, `col` al eje y, y `region` para el color.
-3.  **Añadir líneas**:
-    -   Añade líneas al gráfico con `geom_line(size = 1.5)`, especificando el tamaño de las líneas.
-4.  **Añadir puntos**:
-    -   Añade puntos con `geom_point(size = 3)`, especificando el tamaño de los puntos.
-5.  **Configurar la paleta de colores**:
-    -   Aplica `scale_color_brewer(palette = "Dark2")` para utilizar la paleta de colores "Dark2".
+### Visualización de las distribuciones {#visualizacion-distribuciones}
 
-### Generar Scatterplots
+```{r, warning=FALSE, message=FALSE, fig.height= 6}
 
-#### Crear el df agrupado
+# Seleccionar las columnas de interés
+df_correlacion <- df %>% select(-pais, -año) %>%
+                  mutate( inflacion = log2(inflacion),
+                          pib = log2(pib),
+                          pib_per_capita = log2(pib_per_capita),
+                          ingreso_fiscal = log2(ingreso_fiscal)
+                  ) 
 
-```{r}
-# Function to create the summarized dataframe
-df_scatter_plot <- function(col1, col2, metodo1, metodo2){
-  df_avg <- df %>%
-    group_by(pais, region) %>%
-    summarise(!!col1 := metodo1(.data[[col1]], na.rm = TRUE),
-              !!col2 := metodo2(.data[[col2]], na.rm = TRUE),.groups = "drop") %>%
-    ungroup()
-  df_avg
-}
+# Transformar el DataFrame de formato ancho a formato largo
+df_correlacion_valores_llaves <- df_correlacion %>% gather(variable, valor)
+
+# Crear un gráfico de densidad para cada variable
+plot <- ggplot(df_correlacion_valores_llaves, aes(x = valor, fill = variable)) +
+  geom_density() +
+  facet_wrap(~variable, scales = "free") +
+  labs(title = "Distribución de las Variables Numéricas",
+       x = "",
+       y = "") +
+  theme(legend.position = "none",
+        panel.spacing.x = unit(1, "lines"),
+        panel.spacing.y = unit(3, "lines"))
+
+# Convertir a objeto plotly
+ggplotly(plot)
+
 ```
-
-1.  **Definir la función**:
-    -   La función `df_scatter_plot` toma cuatro argumentos: `col1`, `col2`, `metodo1` y `metodo2`.
-2.  **Agrupar por variables específicas**:
-    -   Utiliza `group_by` para agrupar los datos por `pais` y `region`.
-3.  **Calcular los valores resumidos**:
-    -   Usa `summarise` para calcular el valor resumido de la columna `col1` mediante el método `metodo1`, y el valor de la columna `col2`
-        mediante el método `metodo2`, manejando valores nulos con `na.rm = TRUE`.
-4.  **Eliminar agrupación**:
-    -   Emplea `ungroup` para quitar la agrupación.
-5.  **Retornar el dataframe resumido**:
-    -   Retorna el dataframe `df_avg`.
-
-#### Crear el gráfico
-
-```{r}
-# Function to create the scatter plot
-scatter_plot <- function(df, col1, col2){
-  plot <- ggplot(df, aes(x = .data[[col1]], y = .data[[col2]], color = region)) +
-    geom_point(size = 3, alpha = 0.7) +
-    geom_smooth(method = "lm", se = FALSE, linetype = "dashed", linewidth = 1, color = "black", formula = y ~ x)
-  plot
-}
-```
-
-1.  **Definir la función**:
-    -   La función `scatter_plot` toma tres argumentos: `df`, `col1` y `col2`.
-2.  **Crear el gráfico de dispersión**:
-    -   Usa `ggplot` con `df` y `aes` para mapear `col1` al eje x, `col2` al eje y, y `region` para el color.
-3.  **Añadir puntos**:
-    -   Añade puntos al gráfico con `geom_point(size = 3, alpha = 0.7)`, especificando el tamaño de los puntos y su transparencia.
-4.  **Añadir una línea de tendencia**:
-    -   Añade una línea de tendencia con
-        `geom_smooth(method = "lm", se = FALSE, linetype = "dashed", linewidth = 1, color = "black", formula = y ~ x)`, especificando el
-        método de regresión lineal, sin intervalo de confianza, estilo de línea, grosor, color y fórmula.
-
-## Análisis de la Evolución de la Inflación Promedio Anual por Región {#analisis-de-la-evolución-de-la-inflacion-promedio-anual-por-region}
-
-### Visualización de la Inflación {#visualizacion-de-la-inflacion}
-
-```{r Inflación2, warning=FALSE}
-
-df_line <- df_line_plot("inflacion", median)
-
-plot <- line_plot(df_line, "inflacion") +
-        scale_y_continuous(limits = c(0, 24)) +
-        geom_text(data = df_line %>% filter(inflacion > 24),
-                  aes(label = round(inflacion), y = 24),
-                  color = "#6464AA", size = 3, vjust = -0.7) +
-        labs(title = "Evolución de la Inflación Promedio Anual por Región",
-             x = "Año",
-             y = "Inflación Promedio",
-             color = "Región")
-      
-plotly::ggplotly(plot)
-```
-
-1.  **Crear el dataframe resumido**:
-    -   Se llama a la función `df_line_plot` con los argumentos `"inflacion"` y `median` para crear el dataframe `df_line` que contiene los
-        valores de inflación por región y año, calculados como la mediana.
-2.  **Generar el gráfico de líneas**:
-    -   Se llama a la función `line_plot` con los argumentos `df_line` y `"inflacion"` para crear el gráfico base `plot`.
-3.  **Ajustar los límites del eje Y**:
-    -   Utiliza `scale_y_continuous(limits = c(0, 24))` para establecer los límites del eje y entre 0 y 24.
-4.  **Añadir etiquetas de texto**:
-    -   Usa `geom_text` para añadir etiquetas de texto en los puntos donde la inflación es mayor a 24. Filtra los datos con
-        `df_line %>% filter(inflacion > 24)`, y añade etiquetas redondeadas con `aes(label = round(inflacion), y = 24)`, ajustando el color
-        y tamaño del texto.
-
-#### Observaciones:
-
-1.  **Patrones Generales**:
-    -   La crisis del 2008 y los estímulos monetarios de la crisis del 2021 se vieron reflejados en un aumento de la inflación mundial.
-    -   Durante los años próximos de la crisis surge una bajada lenta de la inflación.
-2.  **América (AME) y África Subsahariana (SSA)**:
-    -   Se observa una tendencia general a la baja en la inflación desde 1995 hasta principios de la década de 2000.
-3.  **Asia-Pacífico (AP)**:
-    -   La región ha mantenido una inflación relativamente baja y estable en comparación con otras regiones.
-    -   Aunque hay algunos picos, la inflación en Asia-Pacífico ha sido más controlada.
-4.  **Europa Occidental y Unión Europea (WE/EU)**:
-    -   Esta región ha experimentado una inflación muy baja y estable durante la mayor parte del período analizado.
-5.  **Medio Oriente y Norte de África (MENA)**:
-    -   En 2008 tuvo el peor desempeño relativamente dado que empieza al nivel de AP(5%) y termina junto a SSA(11%).
-    -   Sin embargo en 2022 muestra unos resultados muy buenos conteniendo la inflación.
-6.  **Europa Oriental y Asia Central (ECA)**:
-    -   Muestra una tendencia fluctuante en la inflación a lo largo de los años.
-    -   La región muestra una inflación muy alta hasta 2022, donde se empieza a moderar y seguir la tendencia mundial, especialmente despues
-        de 2008 aunque en 2022 vuelve a despuntar.
-
-## Análisis de la Evolución del Indice de Percepción de Corrupción Promedio Anual (CPI) por Región {#analisis-de-la-evolucion-del-indice-de-percepcion-de-corrupcion-promedio-anual-cpi-por-region}
-
-### Visualización del CPI {#visualizacion-del-cpi}
-
-```{r CPI3, warning=FALSE}
-
-df_line <- df_line_plot("cpi", mean)
-
-plot <- line_plot(df_line, "cpi")+
-        labs(title = "Evolución del CPI Promedio Anual por Región",
-             x = "Año",
-             y = "CPI Promedio",
-             color = "Región")
-
-plotly::ggplotly(plot)
-```
-
-1.  **Crear el dataframe resumido**:
-    -   Se llama a la función `df_line_plot` con los argumentos `"cpi"` y `mean` para crear el dataframe `df_line` que contiene los valores
-        del CPI por región y año, calculados como la media.
-2.  **Generar el gráfico de líneas**:
-    -   Se llama a la función `line_plot` con los argumentos `df_line` y `"cpi"` para crear el gráfico base `plot`.
-3.  **Añadir etiquetas y título**:
-    -   Aplica `labs` para añadir un título al gráfico y etiquetas a los ejes:
-        -   Título: "Evolución del CPI Promedio Anual por Región"
-        -   Eje X: "Año"
-        -   Eje Y: "CPI Promedio"
-        -   Leyenda: "Región"
-
-#### Observaciones:
-
-1.  **América (AME)**:
-    -   La puntuación de corrupción en Iberoamérica ha mostrado una tendencia muy fluctuante a lo largo de los años, especialmente al
-        inicio.
-2.  **África Subsahariana (SSA)**:
-    -   Muestra una tendencia similar a la de Iberoamérica, con puntuaciones de corrupción que varían considerablemente a lo largo del
-        tiempo.
-3.  **Asia-Pacífico (AP)**:
-    -   En la primera década ha mostrado una tendencia bajista que posteriormente se estabilizó sin apenas subida.
-4.  **Europa Occidental y Unión Europea (WE/EU)**:
-    -   Esta región ha experimentado una puntuación de corrupción relativamente baja y estable durante la mayor parte del período analizado.
-5.  **Medio Oriente y Norte de África (MENA)**:
-    -   Muestra una puntuación de corrupción relativamente alta en comparación con Europa y Asia-Pacífico.
-    -   Hay fluctuaciones significativas en la puntuación, pero con tendencia a la baja.
-6.  **Europa Oriental y Asia Central (ECA)**:
-    -   Muestra una tendencia alcista en la puntuación de corrupción a lo largo de los años.
-
-## Análisis de la evolución del PIB por región {#analisis-evolucion-pib}
-
-### Visualización del PIB y su crecimiento por región
-
-```{r pib 3, warning=FALSE}
-# Calcular el PIB y PIB per cápita promedio anual por región
-df_line <- df_line_plot("pib", mean)
-
-plot1 <- line_plot(df_line, "pib")+
-         labs(y = "PIB") +
-         scale_y_log10()
-df_line <- df_line_plot("crecimiento_pib", mean)
-
-plot2 <-line_plot(df_line, "crecimiento_pib")+
-        labs(x = "Año",
-             y = "Crecimiento del PIB (%)")
-
-plot <- plotly::subplot(plot1, plot2, nrows = 2, margin = 0.05)
-plot <- plot %>% layout(title = list(text = "Evolución del PIB y su Crecimiento por Región", y = 0.985))
-plot
-```
-
-1.  **Calcular el PIB promedio anual por región**:
-    -   Se llama a la función `df_line_plot` con los argumentos `"pib"` y `mean` para crear el dataframe `df_line` que contiene los valores
-        de PIB por región y año, calculados como la media.
-2.  **Generar el primer gráfico de líneas (PIB)**:
-    -   Se llama a la función `line_plot` con los argumentos `df_line` y `"pib"` para crear el gráfico base `plot1`.
-    -   Se añaden etiquetas a los ejes utilizando `labs(y = "PIB")`.
-    -   Se escala el eje y en logaritmo base 10 con `scale_y_log10()`.
-3.  **Calcular el crecimiento del PIB promedio anual por región**:
-    -   Se llama a la función `df_line_plot` con los argumentos `"crecimiento_pib"` y `mean` para crear el dataframe `df_line` que contiene
-        los valores de crecimiento del PIB por región y año, calculados como la media.
-4.  **Generar el segundo gráfico de líneas (Crecimiento del PIB)**:
-    -   Se llama a la función `line_plot` con los argumentos `df_line` y `"crecimiento_pib"` para crear el gráfico base `plot2`.
-    -   Se añaden etiquetas a los ejes utilizando `labs(x = "Año", y = "Crecimiento del PIB (%)")`.
-5.  **Crear un subplot con ambos gráficos**:
-    -   Usa `plotly::subplot(plot1, plot2, nrows = 2, margin = 0.05)` para crear un subplot con `plot1` y `plot2` en dos filas y un margen
-        de 0.05.
-6.  **Ajustar el título del subplot**:
-    -   Utiliza `plot %>% layout(title = list(text = "Evolución del PIB y su Crecimiento por Región", y = 0.985))` para establecer el título
-        del subplot y su posición vertical.
-
-#### Observaciones:
-
-1.  **Tendencias Generales**
-    -   Todas las regiones muestran un crecimiento en el PIB a lo largo de los años, con algunas fluctuaciones.
-    -   Se observa un impacto significativo de la crisis financiera de 2008 y el covid del 2021 en el crecimiento del PIB en todas las
-        regiones.
-2.  **Grupo 1**:
-    -   Se compone de Europa Occidental y la Unión Europea (WE/EU), Asia-Pacífico (AP) y América(AME).
-    -   Son las regiones más ricas
-    -   De 1995 a 2008 las 3 regiones crecieron de forma similar
-    -   A partir de 2008:
-        -   WE/EU se estancó
-        -   AP que previamente estaba un poco rezagada superó a AME y a WE/EU con crecimiento elevado
-        -   AME creció de forma moderada
-3.  **Grupo 2**:
-    -   Se compone de Medio Oriente y Norte de África (MENA).
-    -   Ha experimentado un crecimiento elevado, similar al de AP.
-4.  **Grupo 3**:
-    -   Se compone de Europa Oriental y Asia Central (ECA) y África Subsahariana (SSA).
-    -   Se caracterizan por ser las regiones con menos poder adquisitivo.
-    -   Desde 1995 hasta 2001 apenas hubo crecimiento e incluso decrecimiento en ECA.
-    -   Después del 2001 Se observa un crecimiento acelerado en el PIB con bastantes fluctuaciones
-
-## Análisis del Ingreso Fiscal {#analisis-evolucion-ingreso-fiscal}
-
-### Evolución del Ingreso Fiscal por Región
-
-```{r, warning=FALSE, fig.width = 12}
-
-df_line <- df_line_plot("ingresos_fiscales", mean) 
-plot1 <- line_plot(df_line, "ingresos_fiscales")
-
-
-df_line <- df_line_plot("variacion_ingresos", mean) 
-plot2 <- line_plot(df_line, "variacion_ingresos")
-
-
-plot <- plotly::subplot(plot1, plot2, nrows = 2, margin = 0.05)
-plot <- plot %>% layout(title = list(text = "Evolución del Ingreso Fiscal por Región", y = 0.985))
-
-plot
-```
-
-1.  **Calcular los ingresos fiscales promedio anual por región**:
-    -   Se llama a la función `df_line_plot` con los argumentos `"ingresos_fiscales"` y `mean` para crear el dataframe `df_line` que
-        contiene los valores de ingresos fiscales por región y año, calculados como la media.
-2.  **Generar el primer gráfico de líneas (Ingresos Fiscales)**:
-    -   Se llama a la función `line_plot` con los argumentos `df_line` y `"ingresos_fiscales"` para crear el gráfico base `plot1`.
-3.  **Calcular la variación de ingresos promedio anual por región**:
-    -   Se llama a la función `df_line_plot` con los argumentos `"variacion_ingresos"` y `mean` para crear el dataframe `df_line` que
-        contiene los valores de la variación de ingresos por región y año, calculados como la media.
-4.  **Generar el segundo gráfico de líneas (Variación de Ingresos)**:
-    -   Se llama a la función `line_plot` con los argumentos `df_line` y `"variacion_ingresos"` para crear el gráfico base `plot2`.
-5.  **Crear un subplot con ambos gráficos**:
-    -   Usa `plotly::subplot(plot1, plot2, nrows = 2, margin = 0.05)` para crear un subplot con `plot1` y `plot2` en dos filas y un margen
-        de 0.05.
-6.  **Ajustar el título del subplot**:
-    -   Utiliza `plot %>% layout(title = list(text = "Evolución del Ingreso Fiscal por Región", y = 0.985))` para establecer el título del
-        subplot y su posición vertical.
-
-#### Observaciones:
-
-1.  **WE/EU** ha mantenido un ingreso fiscal relativamente alto y estable a lo largo del tiempo.
-2.  **SSA** muestra ingresos fiscales más bajos y con mayor variabilidad, lo que podría indicar inestabilidad económica o fluctuaciones en
-    las políticas fiscales.
-3.  **AME** y **ECA** han tenido un incremento gradual en el ingreso fiscal, sugiriendo un crecimiento económico continuo en estas regiones.
-4.  **MENA** y **AP** presentan una tendencia más volátil, con picos y valles en diferentes años, reflejando posiblemente cambios políticos
-    o económicos significativos.
-
-### Visualización del Ingreso Fiscal por Región
-
-```{r, warning=FALSE}
-# Boxplot para comparar el Ingreso Fiscal por región
-plot <- ggplot(df, aes(x = region, y = ingresos_fiscales, fill = region)) +
-  geom_boxplot() +
-  geom_violin(alpha = 0.3) +
-  scale_fill_brewer(palette = "Dark2") +
-  labs(title = "Comparación del Ingreso Fiscal por Región",
-       x = "Región",
-       y = "Ingreso Fiscal") +
-  theme(legend.position = "none")
-
-plotly::ggplotly(plot) 
-```
-
-1.  **Crear el gráfico vacio**:
-    -   Utiliza `ggplot` con `df` y `aes` para mapear `region` al eje x y `ingresos_fiscales` al eje y, y `region` para el color de relleno.
-2.  **Añadir elementos gráficos**:
-    -   Usa `geom_boxplot` para añadir un boxplot que muestra la distribución de `ingresos_fiscales` por `region`.
-    -   Añade un gráfico de violín con `geom_violin()` para visualizar la densidad de los datos, con una transparencia del 30%
-        (`alpha = 0.3`).
-3.  **Ajustar la leyenda**:
-    -   Emplea `theme(legend.position = "none")` para eliminar la leyenda del gráfico, en el eje x está toda la información que
-        proporcionaría la legenda.
-
-#### Observaciones:
-
-1.  **Mediana de Ingresos**:
-    -   **WE/EU** presenta la mediana de ingreso fiscal más alta, indicando una estabilidad fiscal considerable en esta región.
-    -   **SSA** muestra la mediana de ingresos más baja, lo que sugiere desafíos económicos significativos.
-2.  **Distribución y Variabilidad**:
-    -   **AP** y **MENA** presentan una alta variabilidad en sus ingresos fiscales, reflejada en la amplia dispersión de sus datos. Además
-        se observan varios valores atípicos, lo que podría indicar eventos económicos excepcionales y por consecuencia reformas fiscales.
-    -   **AME** y **ECA** tienen distribuciones más ajustadas, con menos variabilidad comparada con AP y MENA.
-
-### Comparación de la Distribución del Ingreso Fiscal en 1995 vs 2022
-
-```{r, warning=FALSE}
-
-# Convierto año a factor para poder visualizarlo en el gráfico
-df$año <- as.factor(df$año)
-
-# Distribución del Ingreso Fiscal
-plot <- ggplot(df %>% filter(año == 1995 | año == 2022), aes(x = ingresos_fiscales, fill = año)) +
-  geom_density(alpha=0.5, size=1) +
-  labs(title = "Distribución del Ingreso Fiscal",
-       x = "Ingreso Fiscal",
-       y = "Frecuencia") +
-  scale_fill_brewer(palette = "Dark2") +
-  geom_vline(xintercept = median(df$ingresos_fiscales[df$año == 1995], na.rm = TRUE), 
-             linetype = "dashed", color= "#1b9e77", size = 1) +
-  geom_vline(xintercept = median(df$ingresos_fiscales[df$año == 2022], na.rm = TRUE), 
-             linetype = "dashed", color= "#e6ab02", size = 1) +
-  xlim(0, 70)
-
-plotly::ggplotly(plot)
-```
-
-1.  **Convertir `año` a factor**:
-    -   Convierte la columna `año` a tipo factor en el DataFrame `df` para posibilitar su visualización en el gráfico.
-2.  **Filtrar los datos para los años 1995 y 2022**:
-    -   Usa `filter` para seleccionar únicamente las filas correspondientes a los años 1995 y 2022.
-3.  **Crear el gráfico de densidad**:
-    -   Utiliza `ggplot` para crear un gráfico de densidad con `df`, asignando `ingresos_fiscales` al eje x y `año` al relleno de las áreas
-        de densidad.
-    -   Añade las áreas de densidad al gráfico con `geom_density`, ajustando la transparencia (`alpha=0.5`) y el tamaño (`size=1`).
-4.  **Añadir etiquetas y título**:
-    -   Emplea `labs` para añadir un título al gráfico, así como etiquetas a los ejes.
-5.  **Configurar la paleta de colores**:
-    -   Aplica `scale_fill_brewer` para utilizar la paleta de colores "Dark2" para el relleno de las áreas de densidad.
-6.  **Añadir líneas verticales para las medianas**:
-    -   Usa `geom_vline` para añadir líneas verticales en las medianas de `ingresos_fiscales` para los años 1995 y 2022, definiendo el tipo
-        de línea (`linetype = "dashed"`), el color y el tamaño.
-7.  **Definir los límites del eje x**:
-    -   Aplica `xlim` para establecer los límites del eje x de 0 a 70.
-
-El resultado es un gráfico que muestra la distribución del ingreso fiscal en los años 1995 y 2022, con áreas de densidad diferenciadas por
-color, medianas indicadas por líneas verticales, y un rango definido en el eje x.
-
-#### Observaciones:
-
-1.  **Evolución de la Distribución**:
-    -   1995: Está más concentrada con una asimetría positiva, indicando valores más pequeños y menor variabilidad, aunque se observa un
-        máximo local en torno al 45%.
-    -   2022: la distribución se ha ampliado desplazando su máximo absoluto hacia la derecha y deshaciéndose así de esa asimetría tan
-        pronunciada, ha habido un aumento en la variabilidad pero también un aumento generalizado.
-2.  **Medianas**:
-    -   1995: 23.38%
-    -   2022: 27.75%
-3.  **Evolución del lineplot**: - Desde 1995 hasta 2000 no se observa ninguna tendencia.
-    -   **Inicio del Aumento**:
-        -   En 2001 surge una subida notoria que se desinfla hasta 2003.
-        -   De 2003 hasta 2008 se observa una tendencia alcista que finaliza en una subida en la recaudación de casi el 6.5% del PIB
-            mundial.
-    -   **Caída Post-2008**:
-        -   Hasta 2011, hay una caída en el ingreso fiscal de 3 puntos sobre el PIB. Este descenso refleja el impacto de la crisis
-            financiera.
-    -   **Fluctuaciones Posteriores**:
-        -   Posterior a la caída, se inicia otra tendencia al alza menos agresiva pero con mucha variabilidad al inicio.
-    -   **Covid**:
-        -   La subida paulatina llegó a su fin con la pandemia provocando un descenso en la recaudación seguido de un incremento del doble
-            que la caída.
-
-## Análisis de la Correlación entre la Puntuación de Corrupción y la Inflación
-
-### Calculo y Visualización de la Correlación {#visualizacion-correlacion}
-
-```{r Correlación Inflación CPI1, warning=FALSE, fig.width=12}
-
-df_scatter <- df_scatter_plot("inflacion","cpi", median, mean)
-
-plot <- scatter_plot(df_scatter, "inflacion","cpi") +
-        labs(
-            title = "Correlación entre Inflación y Puntuación de Corrupción por País",
-            x = "Inflación Mediana",
-            y = "Puntuación de Corrupción Promedio",
-            color = "Región"
-        )
-
-plotly::ggplotly(plot)
-```
-
-#### Observaciones:
-
-1.  **Tendencia General**:
-    -   Existe una tendencia negativa entre la inflación y la puntuación de corrupción. Esto sugiere que a medida que aumenta la inflación,
-        la puntuación de corrupción tiende a disminuir, indicando mayores niveles de corrupción.
-2.  **Regiones con Alta Inflación**:
-    -   Las regiones como América (AME) y África Subsahariana (SSA) muestran una mayor dispersión en los valores de inflación, con algunos
-        países experimentando inflaciones extremadamente altas. Estos países también tienden a tener puntuaciones de corrupción más bajas,
-        lo que indica altos niveles de corrupción.
-3.  **Regiones con Baja Inflación**:
-    -   Europa Occidental, la Unión Europea(WE/EU) y Asia-Pacífico (AP) muestran inflaciones relativamente bajas y puntuaciones de
-        corrupción más altas, lo que indica menores niveles de corrupción. Esto sugiere una mejor gestión económica y políticas más
-        efectivas contra la corrupción en estas regiones.
-4.  **Línea de Tendencia**:
-    -   La línea de tendencia discontinua en el gráfico refuerza la relación negativa entre la inflación y la puntuación de corrupción.
-        Aunque hay excepciones, la mayoría de los puntos siguen esta tendencia.
-
-## Análisis de la Correlación entre la Inflación y el crecimiento del PIB
-
-### Calculo de valores medianos de inflación y medios del crecimiento del PIB
-
-```{r Correlación Inflación PIB1, fig.width=12}
-# Calcular los valores medios de inflación y crecimiento del PIB por país
-
-df_scatter <- df_scatter_plot("inflacion","crecimiento_pib", median, mean)
-
-plot <- scatter_plot(df_scatter, "inflacion","crecimiento_pib") +
-        labs(
-            title = "Correlación entre Inflación y Crecimiento del PIB por País",
-            x = "Inflación Mediana",
-            y = "Crecimiento del PIB Promedio",
-            color = "Región"
-        )
-
-plotly::ggplotly(plot)
-```
-
-#### Observaciones:
-
-1.  **Tendencia General**:
-    -   Existe una tendencia negativa entre la inflación y el crecimiento del PIB. Esto sugiere que a medida que aumenta la inflación, el
-        PIB tiende a crecer menos e incluso contraerse.
-2.  **Distribución:**
-    -   No hay patrón que permita distinguir entre regiones, la mayoría de casos se encuentran en la región de 0 a 10% de inflación y del -5
-        al 7% de crecimiento del PIB.
-3.  **Línea de Tendencia**:
-    -   Existe poca dispersión entre la linea y los puntos, hay solo 3 casos que se alejen significativamente de esta.
-
-## Análisis de la Correlación entre la Puntuación de Corrupción y el crecimiento del PIB
-
-Dado que la inflación tiene una correlación negativa con el crecimiento del PIB y con el CPI es de esperar que el crecimiento del PIB y el
-CPI tengan una correlación positiva.
-
-### Calculo de valores medios de la puntuación de corrupción y del crecimiento del PIB
-
-```{r Correlación CPI PIB1, fig.width=12}
-
-df_scatter <- df_scatter_plot("cpi","crecimiento_pib", mean, mean)
-
-plot <- scatter_plot(df_scatter, "cpi","crecimiento_pib") +
-    labs(
-        title = "Correlación entre el CPI y Crecimiento del PIB",
-        x = "Puntuación de Corrupción Promedio",
-        y = "Crecimiento del PIB Promedio",
-        color = "Región"
-    )
-
-plotly::ggplotly(plot)
-```
-
-#### Observaciones:
-
-1.  **Tendencia General**:
-    -   Existe una muy leve correlación positiva.
-2.  **Distribución:**
-    -   No hay patrón que permita distinguir entre regiones, sin embargo las dispersión entre los puntos respecto a la linea de tendencia
-        empieza siendo muy grande y se va reduciendo a medida que aumenta la puntuación de corrupción, esto puede indicar que a mayor
-        puntuación de corrupción mayor estabilidad en el crecimiento del PIB.
-
-## Matriz de Correlación
-
-### ¿Por qué uso el coeficiente de Spearman?
-
-Utilizo este método debido a que los datos no siguen una distribución normal y hay valores extremos.
 
 ### Calculo de la matriz de correlación
 
-```{r Matriz de Correlación}
+```{r Matriz de Correlación, warning=FALSE}
 
-# Seleccionar las columnas de interés
-df_correlacion <- df %>% ungroup() %>% select(inflacion, pib, crecimiento_pib, cpi, ingresos_fiscales, variacion_ingresos) 
+df_correlacion <- df %>% select(-pais, -año)
 
-# Calcular la matriz de correlación de Spearman
-corr_matrix <- cor(df_correlacion, method = "spearman", use = "complete.obs")
+# Crear matrices vacías para almacenar p-valores más bajos, métodos y coeficientes de correlación
+n <- ncol(df_correlacion)
+metodos <- c("pearson", "spearman")
+p_metodo <- matrix(" ", n, n, dimnames = list(names(df_correlacion), names(df_correlacion)))
+cor_matrix <- matrix(1, n, n, dimnames = list(names(df_correlacion), names(df_correlacion)))
 
-# Función para calcular los p-valores
-cor.mtest <- function(mat, method) {
-    mat <- as.matrix(mat)
-    n <- ncol(mat)
-    p.mat <- matrix(NA, n, n)
-    diag(p.mat) <- 0
-    for (i in 1:(n - 1)) {
-        for (j in (i + 1):n) {
-            tmp <- cor.test(mat[, i], mat[, j], method = method, exact = FALSE)
-            p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
-        }
-    }
-    colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
-    p.mat
+# Iterar sobre las combinaciones de pares de columnas
+for (j in 1:(n-1)) {
+  for (k in (j+1):n) {
+    var1 <- names(df_correlacion)[j]
+    var2 <- names(df_correlacion)[k]
+    p_valores <- sapply(metodos, function(metodo) cor.test(df_correlacion[[var1]], df_correlacion[[var2]], method = metodo, use ="complete.obs")$p.value)
+    
+    # Identificar el p-valor más bajo y el método correspondiente
+    metodo_elegido <- metodos[which.min(p_valores)]
+    p_valor_minimo <- min(p_valores)
+    
+    # Calcular el coeficiente de correlación usando el método elegido
+    correlacion <- cor(df[[var1]], df[[var2]], method = metodo_elegido, use ="complete.obs")
+    
+    # Almacenar el p-valor más bajo, el método elegido y el coeficiente de correlación
+    p_metodo[var1, var2] <- metodo_elegido
+    p_metodo[var2, var1] <- format(p_valor_minimo, digits = 2, scientific = TRUE)
+    
+    cor_matrix[var1, var2] <- correlacion
+    cor_matrix[var2, var1] <- correlacion
+  }
 }
-# Calcular los p-valores
-p_valores <- cor.mtest(df_correlacion, method = "spearman")
-p_valores
+cor_matrix
 ```
 
-1.  **Seleccionar las columnas de interés**:
-    -   Utiliza `select` para extraer las columnas `inflacion`, `pib`, `crecimiento_pib`, `cpi`, `ingresos_fiscales` y `variacion_ingresos`
-        del DataFrame `df` y almacenarlas en `df_correlacion`.
-2.  **Eliminar la columna `pais`**:
-    -   Excluye la columna `pais` de `df_correlacion`.
-3.  **Calcular la matriz de correlación de Spearman**:
-    -   Utiliza `cor` para calcular la matriz de correlación de Spearman, especificando `method = "spearman"` y `use = "complete.obs"` para
-        manejar los datos completos sin valores faltantes.
-4.  **Definir la función para calcular los p-valores**:
-    -   Crea la función `cor.mtest` para calcular los p-valores de la matriz de correlación. La función toma una matriz `mat` y el método de
-        correlación `method` como argumentos.
-    -   Dentro de la función, convierte `mat` a una matriz, define el tamaño `n` y crea una matriz `p.mat` para almacenar los p-valores.
-    -   Usa bucles anidados para iterar sobre las columnas de la matriz y calcular los p-valores con `cor.test`. Los p-valores se almacenan
-        en `p.mat`.
-5.  **Calcular los p-valores**:
-    -   Llama a la función `cor.mtest` con `df_correlacion` y `method = "spearman"` para calcular los p-valores y almacenarlos en
-        `p_valores`.
+### Visualización de la matriz de p-valores y métodos
 
-El resultado es una matriz de correlación de Spearman (`corr_matrix`) y una matriz de `p_valores` que indica la significancia de las
-correlaciones calculadas.
+```{r}
+# Convertir la matriz de métodos en un dataframe adecuado para ggplot
+p_metodo_df <- melt(p_metodo, varnames = c("Variable1", "Variable2"), value.name = "Valor")
 
-#### Matriz con p-valores
+# Crear la visualización
+method_plot <- ggplot(data = p_metodo_df, aes(x = Variable1, y = Variable2, fill = Valor)) + 
+  geom_tile(color = "black") +  
+  geom_text(aes(label = Valor), 
+            size = 4, 
+            color = "black") + 
+  scale_fill_manual(values = c("pearson" = "#e033ff", "spearman" = "#fdaf7a"," " = "#696969"),na.value = "#e0ffbf") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.line = element_line(color = "black"),
+        panel.background = element_rect(fill = "#f9f9f9", color = NA),  
+        plot.background = element_rect(fill = "#f9f9f9", color = NA),   
+        legend.position = "none") +
+  labs(title = "Métodos de Correlación Utilizados y sus P-Valores", 
+       x = "", 
+       y = "", 
+       fill = "Método")
 
-|                                 | **Inflación** |     PIB      | Crecimiento PIB |      CPI      | **Ingresos Fiscales** | **Variación Ingresos Fiscales** |
-|:------------------:|:------------------:|:------------------:|:------------------:|:------------------:|:------------------:|:------------------:|
-|          **Inflación**          | 0.000000e+00  | 1.454934e-07 |  1.339738e-41   | 4.674756e-149 |     1.807658e-16      |          7.776325e-01           |
-|             **PIB**             | 1.454934e-07  | 0.000000e+00 |  3.702906e-02   | 4.986019e-10  |     1.848926e-02      |          3.020333e-01           |
-|       **Crecimiento PIB**       | 1.339738e-41  | 3.702906e-02 |  0.000000e+00   | 8.991133e-01  |     9.312190e-01      |          1.465782e-07           |
-|             **CPI**             | 4.674756e-149 | 4.986019e-10 |  8.991133e-01   | 0.000000e+00  |     1.134087e-153     |          2.259080e-01           |
-|      **Ingresos Fiscales**      | 1.807658e-16  | 1.848926e-02 |  9.312190e-01   | 1.134087e-153 |     0.000000e+00      |          6.034773e-04           |
-| **Variación Ingresos Fiscales** | 7.776325e-01  | 3.020333e-01 |  1.465782e-07   | 2.259080e-01  |     6.034773e-04      |          0.000000e+00           |
 
-#### Observaciones:
+method_plot <- ggplotly(method_plot) %>% 
+               layout(autosize = TRUE, 
+                     xaxis = list(autorange = TRUE))
 
-Todos los pares de variables tienen un **p-valor** menor a 0.05 salvo 4:
-
--   Inflación y Variación de Ingresos Fiscales: 0.777
--   PIB y Variación de Ingresos Fiscales: 0.302
--   CPI y Variación de Ingresos Fiscales: 0.259
--   CPI y Crecimiento del PIB: 0.899
+method_plot
+```
 
 ### Visualización de la matriz de correlación
 
-```{r Matriz de Correlación2, fig.width=8, fig.align='center'}
-corrplot <-ggcorrplot(corr_matrix, 
-           method = "circle", 
-           type = "full", 
+```{r fig.height= 7, fig.width = 7}
+
+corrplot <-ggcorrplot(cor_matrix, 
+           method = "circle",
+           type = "full",
            lab = TRUE,
            lab_size = 3, 
-           colors = c("#6D9EC1", "white", "#E46726"), 
-           title = "Matriz de Correlación") + 
-  theme(
+           colors = c("#6400e4","white", "#e40000"), 
+           title = "       Matriz de Correlación") +
+  
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
     panel.background = element_rect(fill = "#f9f9f9", color = NA),  
     plot.background = element_rect(fill = "#f9f9f9", color = NA),   
-    legend.background = element_rect(fill = "#f9f9f9", color = NA)) 
+    axis.title = element_text(size = 3),
+    axis.text = element_text(size = 1))
 
-ggsave("corrplot.png", plot = corrplot, width = 12, height = 12, units = "cm")
-
+ggsave("corrplot.png", plot = corrplot, width = 5, height = 3.75, dpi = 400)
 knitr::include_graphics("corrplot.png")
 ```
-
-1.  **Visualizar la matriz de correlación**:
-    -   Usa `ggcorrplot` para crear una visualización de la matriz de correlación `corr_matrix`.
-    -   Configura el método de visualización como "circle" para representar las correlaciones con círculos.
-    -   Establece el tipo de visualización en "full" para mostrar la matriz completa en vez de un triangulo.
-    -   Activa las etiquetas de los valores de correlación con `lab = TRUE` y ajusta el tamaño de las etiquetas con `lab_size = 3`.
-    -   Define los colores de los círculos con `colors`.
-
-#### Observaciones (p-valor \< 0.05):
-
-**Pares con correlación negativa:**
-
--   Inflación y CPI (-0.83): Correlación muy fuerte.
--   Inflación y PIB (-0.79): Correlación fuerte.
--   Inflación y Crecimiento PIB (-0.31): Correlación moderada.
--   Inflación e Ingresos Fiscales (-0.25): Correlación moderada.
-
-**Pares sin correlación:**
-
--   PIB y Variación Ingresos (0.18): Correlación muy débil y positiva.
--   CPI y Variación Ingresos (0.23): Correlación débil y positiva.
-
-**Pares con correlación positiva:**
-
--   Crecimiento PIB e Ingresos Fiscales (0.28): Correlación débil.
--   CPI e Ingresos Fiscales (0.34): Correlación débil.
--   Ingresos Fiscales y Variación Ingresos (0.48): Correlación moderada.
--   PIB e Ingresos Fiscales (0.51): Correlación moderadamente fuerte.
--   PIB y CPI (0.72): Correlación muy fuerte.
-
-## Conclusiones
-
-El análisis realizado sobre el impacto de la inflación en la macroeconomía y su relación con la corrupción ha revelado varios hallazgos
-importantes:
-
-1.  **Inflación y Corrupción**:
-    -   Existe una correlación negativa significativa entre la inflación y la puntuación de corrupción (CPI). Esto sugiere que a medida que
-        aumenta la inflación, la percepción de corrupción también aumenta. Las regiones con alta inflación tienden a tener mayores niveles
-        de corrupción.
-2.  **Inflación y Crecimiento del PIB**:
-    -   La inflación tiene una correlación negativa con el crecimiento del PIB. Esto indica que altos niveles de inflación están asociados
-        con un menor crecimiento económico. Las economías con inflación controlada tienden a crecer más rápidamente.
-3.  **Corrupción y Crecimiento del PIB**:
-    -   Aunque la correlación entre la puntuación de corrupción y el crecimiento del PIB es muy débil, se observa que las regiones con
-        menores niveles de corrupción (mayor CPI) tienden a tener un crecimiento económico más estable.
-4.  **Ingresos Fiscales**:
-    -   Los ingresos fiscales muestran una correlación positiva con la puntuación de corrupción y el PIB. Esto sugiere que economías con
-        menores niveles de corrupción y mayor PIB tienden a tener ingresos fiscales más altos.
-5.  **Variabilidad Regional**:
-    -   Las regiones como Europa Occidental y Asia-Pacífico muestran una inflación controlada y menores niveles de corrupción, lo que se
-        traduce en un crecimiento económico más estable. En contraste, regiones como América y África Subsahariana presentan mayores niveles
-        de inflación y corrupción, lo que afecta negativamente su crecimiento económico.

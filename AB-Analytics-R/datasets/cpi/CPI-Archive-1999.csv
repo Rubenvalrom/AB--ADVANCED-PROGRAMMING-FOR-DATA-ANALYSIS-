@@ -1,0 +1,101 @@
+country,iso,region,score,interval
+Albania,ALB,ECA,2.3,0.3
+Argentina,ARG,AME,3,0.8
+Armenia,ARM,ECA,2.5,0.4
+Australia,AUS,AP,8.7,0.7
+Austria,AUT,WE/EU,7.6,0.8
+Azerbaijan,AZE,ECA,1.7,0.6
+Belarus,BLR,ECA,3.4,1.4
+Belgium,BEL,WE/EU,5.3,1.3
+Bolivia,BOL,AME,2.5,1.1
+Botswana,BWA,SSA,6.1,1.7
+Brazil,BRA,AME,4.1,0.8
+Bulgaria,BGR,WE/EU,3.3,1.4
+Cameroon,CMR,SSA,1.5,0.5
+Canada,CAN,AME,9.2,0.5
+Chile,CHL,AME,6.9,1
+China,CHN,AP,3.4,0.7
+Colombia,COL,AME,2.9,0.5
+Costa Rica,CRI,AME,5.1,1.5
+Croatia,HRV,WE/EU,2.7,0.9
+Czech Republic,CZE,WE/EU,4.6,0.8
+Denmark,DNK,WE/EU,10,0.8
+Ecuador,ECU,AME,2.4,1.3
+Egypt,EGY,MENA,3.3,0.6
+El Salvador,SLV,AME,3.9,1.9
+Estonia,EST,WE/EU,5.7,1.2
+Finland,FIN,WE/EU,9.8,0.5
+France,FRA,WE/EU,6.6,1
+Georgia,GEO,ECA,2.3,0.7
+Germany,DEU,WE/EU,8,0.5
+Ghana,GHA,SSA,3.3,1
+Greece,GRC,WE/EU,4.9,1.7
+Guatemala,GTM,AME,3.2,2.5
+Honduras,HND,AME,1.8,0.5
+Hong Kong,HKG,AP,7.7,1.6
+Hungary,HUN,WE/EU,5.2,1.1
+Iceland,ISL,WE/EU,9.2,1.2
+India,IND,AP,2.9,0.6
+Indonesia,IDN,AP,1.7,0.9
+Ireland,IRL,WE/EU,7.7,1.9
+Israel,ISR,MENA,6.8,1.3
+Italy,ITA,WE/EU,4.7,0.6
+Ivory Coast,CIV,AF,2.6,1
+Jamaica,JAM,AME,3.8,0.4
+Japan,JPN,AP,6,1.6
+Jordan,JOR,MENA,4.4,0.8
+Kazakhstan,KAZ,ECA,2.3,1.3
+Kenya,KEN,SSA,2,0.5
+Kyrgyz Republic,KGZ,ECA,2.2,0.4
+Latvia,LVA,WE/EU,3.4,1.3
+Lithuania,LTU,WE/EU,3.8,0.5
+Luxembourg,LUX,WE/EU,8.8,0.9
+Macedonia,MKD,ECA,3.3,1.2
+Malawi,MWI,SSA,4.1,0.5
+Malaysia,MYS,AP,5.1,0.5
+Mauritius,MUS,SSA,4.9,0.7
+Mexico,MEX,AME,3.4,0.5
+Moldova,MDA,ECA,2.6,0.8
+Mongolia,MNG,AP,4.3,1
+Morocco,MAR,MENA,4.1,1.7
+Mozambique,MOZ,SSA,3.5,2.2
+Namibia,NAM,SSA,5.3,0.9
+Netherlands,NLD,WE/EU,9,0.5
+New Zealand,NZL,AP,9.4,0.8
+Nicaragua,NIC,AME,3.1,2.5
+Nigeria,NGA,SSA,1.6,0.8
+Norway,NOR,WE/EU,8.9,0.8
+Pakistan,PAK,AP,2.2,0.7
+Paraguay,PRY,AME,2,0.8
+Peru,PER,AME,4.5,0.8
+Philippines,PHL,AP,3.6,1.4
+Poland,POL,WE/EU,4.2,0.8
+Portugal,PRT,WE/EU,6.7,1
+Romania,ROU,WE/EU,3.3,1
+Russia,RUS,ECA,2.4,1
+Senegal,SEN,SSA,3.4,0.8
+Singapore,SGP,AP,9.1,0.9
+Slovak Republic,SVK,WE/EU,3.7,1.5
+Slovenia,SVN,WE/EU,6,1.3
+South Africa,ZAF,SSA,5,0.8
+South Korea,KOR,AP,3.8,0.9
+Spain,ESP,WE/EU,6.6,0.7
+Sweden,SWE,WE/EU,9.4,0.6
+Switzerland,CHE,WE/EU,8.9,0.6
+Taiwan,TWN,AP,5.6,0.9
+Tanzania,TZA,SSA,1.9,1.1
+Thailand,THA,AP,3.2,0.7
+Tunisia,TUN,MENA,5,1.9
+Turkey,TUR,ECA,3.6,1
+Uganda,UGA,SSA,2.2,0.7
+Ukraine,UKR,ECA,2.6,1.4
+United Kingdom,GBR,WE/EU,8.6,0.5
+Uruguay,USA,AME,4.4,0.9
+USA,URY,AME,7.5,0.8
+Uzbekistan,UZB,ECA,1.8,0.4
+Venezuela,VEN,AME,2.6,0.8
+Vietnam,VNM,AP,2.6,0.5
+Yugoslavia,YUG,ECA,2,1.1
+Zambia,ZMB,SSA,3.5,1.5
+Zimbabwe,ZWE,SSA,4.1,1.4
+
