@@ -35,7 +35,7 @@ Los datos utilizados en este análisis provienen de 2 fuentes:
     Internacional](https://www.imf.org/external/datamapper/NGDPDPC@WEO/OEMDC/ADVEC/WEOWORLD "Fondo Monetario Internacional").
 
 -   **Índice de Percepción de Corrupción (CPI)**: Los datos del CPI se obtuvieron de
-    [transparency.org](https://www.transparency.org/en/ "Transparency.org"), una organización sin fines de lucro que publica anualmente el
+    [Transparency.org](https://www.transparency.org/en/ "Transparency.org"), una organización sin fines de lucro que publica anualmente el
     índice de percepción de corrupción.
 
 ## Extracción de Datos {#extraccion-de-datos}
@@ -53,36 +53,69 @@ library(scales)
 library(reshape2)
 library(corrplot)
 library(stringdist)
+library(randomForest)
+library(caret)
 ```
 
 ### Importación de Datos del FMI {#importacion-de-datos}
 
+Inflación:
+
 ```{r message=FALSE, warning=FALSE}
-
-# Inflación
-inflacion <- read_excel("datasets/imf-dm-export-inflacion.xlsx")[, c(-2, -3)]
+inflacion <- read_excel("datasets/imf-dm-export-inflacion.xlsx")
 head(inflacion[0:2])
+```
 
-# PIB
+Producto interior bruto (PIB):
+
+```{r message=FALSE, warning=FALSE}
 pib <- read_excel("datasets/imf-dm-export-pib.xls")
 head(pib[0:2])
+```
 
-# Ingreso Fiscal
+Ingreso fiscal:
+
+```{r message=FALSE, warning=FALSE}
 ingreso_fiscal <- read_excel("datasets/imf-dm-export-presion-fiscal.xls")
 head(ingreso_fiscal[0:2])
+```
 
-# PIB per Capita
+PIB per capita:
+
+```{r message=FALSE, warning=FALSE}
 pib_per_capita <- read_excel("datasets/imf-dm-export-pib-per-capita.xls")
 head(pib_per_capita[0:2])
-
 ```
 
 ### Función para formatear los df del FMI {#funcion-fmi}
 
+Procesa y formatea los datos obtenidos del Fondo Monetario Internacional.
+
+**Argumentos:**
+
+-   `df`: Dataframe del FMI
+
+-   `valor`: string con el que renombrar la columna al pivotar
+
+**Devuelve:**
+
+El dataframe formateado de ancho a largo con 3 columnas, el nombre de las columnas originales se meten en la nueva columna "año" y sus
+valores correspondientes en "valor"
+
+**Pasos:**
+
+1.  Remplazar valores "no data" por nulos
+2.  Eliminar todos los nulos
+3.  Renombrar la primera columna a país
+4.  Meter en un array los años que tenga el DataFrame de turno
+5.  Convertir columnas a formato numérico para evitar posibles errores
+6.  Obtener el nombre del df para utilizarlo como nombre de columna
+7.  Transformar el DataFrame del formato ancho al formato largo con el nombre de columna proporcionado
+8.  Convertir las dos columnas resultantes a numérico
+9.  Mostrar primeros registros y resumen de los datos
+10. Devolver el dataframe transformado
+
 ```{r message=FALSE, warning=FALSE}
-
-# Función para formatear los datos del FMI
-
 formatear_fmi <- function(df, valor) {
   
   # Contar los datos nulos
@@ -105,11 +138,8 @@ formatear_fmi <- function(df, valor) {
   df <- df %>% pivot_longer(cols = all_of(años)
                             , names_to ="año", 
                             values_to = valor) %>%
-               mutate(año = as.numeric(año))
+               mutate(across(c(valor, año), as.numeric))
 
-  # Convertir todas la columnas menos pais a numerico
-  df <- df %>% mutate(across(c(valor, año), as.numeric))
-  
   # Mostrar los primeros registros y el resumen de los datos
   print("Primeros Registros:")
   print(head(df))
@@ -124,53 +154,95 @@ formatear_fmi <- function(df, valor) {
 
 ### Union de los Datos del FMI {#pib}
 
-```{r message=FALSE, warning=FALSE}
+Se ejecuta la función anterior con los datos de inflación, PIB, ingreso fiscal y PIB per capita.
 
-# Formatear los datos de Inflación
+Inflación:
+
+```{r message=FALSE, warning=FALSE}
 inflacion <- formatear_fmi(inflacion, "inflacion")
-
 ```
 
-```{r message=FALSE, warning=FALSE}
+Producto interior bruto (PIB):
 
-# Formatear los datos del PIB
+```{r message=FALSE, warning=FALSE}
 pib <- formatear_fmi(pib, "pib")
-
 ```
 
+Ingreso fiscal:
+
 ```{r message=FALSE, warning=FALSE}
-# Formatear los datos de Ingreso Fiscal
 ingreso_fiscal <- formatear_fmi(ingreso_fiscal, "ingreso_fiscal")
-
 ```
 
+PIB per capita:
+
 ```{r message=FALSE, warning=FALSE}
-# Formatear los datos de PIB per Capita
 pib_per_capita <- formatear_fmi(pib_per_capita, "pib_per_capita")
 ```
 
-```{r message=FALSE, warning=FALSE}
+Se unen los datos del FMI en un solo DataFrame en los países coincidentes por año.
 
-# Unir los datos del FMI
+```{r message=FALSE, warning=FALSE}
 fmi <- pib %>%
     full_join(ingreso_fiscal, by = c("pais", "año")) %>%
     full_join(pib_per_capita, by = c("pais", "año")) %>%
     full_join(inflacion, by = c("pais", "año"))
 
+```
 
-# Filtrar los datos a partir de 1995
-fmi <- fmi %>% filter(año >= 1995)
+Se filtran los datos a partir del año 1995 porque es el año en el que se tienen datos de CPI.
+
+```{r message=FALSE, warning=FALSE}
+fmi <- fmi %>% filter(año >= 1995 & año <= 2023)
 ```
 
 ### Importación de Datos del CPI {#importacion-de-datos-cpi}
 
-#### Importar y unir datos del CPI de 1995 hasta 2011 {#funcion-cpi}
+#### Información de los formatos originales
+
+En total se tienen 18 archivos:
+
+-   1995-2011: Se componen de 17 CSV (1 por año), salvo el de 1999 todos tienen las columnas en el mismo orden (se solucionó modificando el
+    csv directamente)
+
+-   2012-2023: Una hoja de cálculo con el formato deseado (país, año, valor)
+
+#### Bucle para unir y formatear los CSV
+
+Primero importo los datos del CPI de 2011 ya que es el año con más países de 1995 a 2011.
 
 ```{r message=FALSE, warning=FALSE}
-
 cpi <- read.csv("datasets/cpi/CPI-Archive-2011.csv")[c(1,4)] 
-colnames(cpi) <- c("pais","score")
+```
 
+La idea es tener un año de referencia al que ir uniendo el resto de años hasta 1995, dado que 2011 es el año con más países, es más rápido
+
+Dado que si se une un df con otro y **no** hay coincidencias en los nombres de las columnas **no** se crean columnas con sufijos, esto
+implicaría que no habría una columna "score2010" sino "score". Al final o cambio el nombre del año 2011 o 2010.
+
+Conclusión: <button onclick="document.getElementById(&#39;audio&#39;).play()"> 🔊 </button>
+
+<audio id="audio" src="audio/In The End -Linkin Park.mp3">
+
+</audio>
+
+```{r}
+colnames(cpi) <- c("pais","score")
+```
+
+Este bucle une los datos de los años 2011 a 1995.\
+**Pasos:**
+
+1.  Iniciar un bucle que recorre los años de 2010 a 1995.
+
+2.  Importar los datos del año correspondiente.
+
+3.  Cambiar el nombre de la primera columna a "país".
+
+4.  Unir los datos del año df principal utilizando el año como\
+    sufijo.
+
+```{r message=FALSE, warning=FALSE}
 for (año in 2010:1995) {
 
   # Importar los datos del CPI
@@ -183,56 +255,91 @@ for (año in 2010:1995) {
   cpi <- cpi %>%
     left_join(cpi_año, by = "pais", suffix = c("", año))
 }
+```
 
+```{r message=FALSE, warning=FALSE}
 colnames(cpi)[2] <- "score2011"
+```
 
+Convertir las columnas a numérico para evitar error al pivotar:
+
+```{r message=FALSE, warning=FALSE}
 
 # Convertir las columnas a numérico por error al pivotar
 cpi <- cpi %>% mutate(across(starts_with("score"), as.numeric))
+```
 
-cpi <- cpi %>% pivot_longer( cols = starts_with("score"), names_to = "año", names_prefix = "score", values_to = "cpi")
+Se transforma el DataFrame de formato ancho a largo.
 
+```{r message=FALSE, warning=FALSE}
+cpi <- cpi %>% pivot_longer( cols = starts_with("score"), names_to = "año", names_prefix = "score", values_to = "cpi") %>% 
+       mutate(año = as.numeric(año))
+```
+
+Se ajusta la escala del CPI para que concuerde con los años posteriores.
+
+```{r message=FALSE, warning=FALSE}
 # Ajustar la escala
 cpi$cpi <- cpi$cpi * 10
+```
 
-cpi <- cpi %>% drop_na() %>% mutate(año = as.numeric(año))
+Importar los datos de 2012 a 2023.
 
+```{r message=FALSE, warning=FALSE}
 # Importar el resto de años
 cpi_2012_2022 <- read_excel("datasets/cpi/CPI-Archive-2012-2023.xlsx")[c(1,3,5)] 
+```
 
+Cambiar el nombre de las columnas y pasar a numérico.
+
+```{r message=FALSE, warning=FALSE}
 # Cambiar el nombre de las columnas
 colnames(cpi_2012_2022) <- c("pais","año", "cpi")
 
 # Pasar a numérico
 cpi_2012_2022 <- cpi_2012_2022 %>% mutate(cpi = as.numeric(cpi),
                                           año = as.numeric(año))
+```
 
-# Unificar los nombres con Jaro-Winkler
+Unir los datos del CPI verticalmente.
 
-  distancias <- stringdistmatrix(cpi$pais, cpi_2012_2022$pais, method = "jw")
-  
-  indices <- apply(distancias, 1, which.min)
-  
-  nombres_equivalentes <-  cpi_2012_2022$pais[indices]
-  
-  cpi$pais <- nombres_equivalentes
-  
+```{r message=FALSE, warning=FALSE}
 # Unir los datos del CPI verticalmente
 cpi <- rbind(cpi, cpi_2012_2022)
 ```
 
-**Explicación Jaro-Winkler:**
+### Unir los Datos del FMI con el CPI {#unir-datos-cpi}
 
-La fórmula del algoritmo **Jaro-Winkler** se basa en tres componentes principales: la coincidencia de caracteres, la transposición de
-caracteres y un factor de penalización para las diferencias en las primeras letras de las cadenas.
+Mapear los nombres de paises con un alto porcentaje de error pero que son correctos.
+
+```{r message=FALSE, warning=FALSE}
+fmi$pais <- recode(fmi$pais,
+                   "Korea, Republic of" = "Korea (South)",
+                   "China, People's Republic of" = "China",
+                   "Congo, Dem. Rep. of the" = "Congo",
+                   "Taiwan Province of China" = "Taiwan",
+                   "Australia and New Zealand" = "Australia",
+                   "São Tomé and Príncipe" = "Sao Tome and Principe",
+                   "Gambia, The" = "Gambia",
+                   "Bahamas, The" = "Bahamas",
+                   "Congo, Republic of" = "Congo Republic",
+                   "Hong Kong SAR" = "Hong Kong")
+```
+
+Calcular la similitud entre los nombres de los países del FMI y el CPI.
+
+Para ello utilizare el algoritmo Jaro-Winkler, se comparan todos con todos y se escoge para cada nombre el que tenga mejor puntuación.
+
+#### Explicación Jaro-Winkler
+
+Se basa en la coincidencia, trasposición y una penalización para las diferencias en las primeras letras de las cadenas.
 
 1.  **Similitud de Jaro**:
 
 $$ S_{j} = \frac{1}{3} \left( \frac{m}{|s_1|} + \frac{m}{|s_2|} + \frac{m - t}{m} \right) $$
 
-Donde: - $s_1$ y $s_2$ son las cadenas de texto que se comparan. - $|s_1|$ y $|s_2|$ son las longitudes de las cadenas. - $m$ es el número
-de caracteres coincidentes entre las dos cadenas. - $t$ es el número de transposiciones, es decir, el número de caracteres coincidentes que
-están fuera de lugar.
+Donde: - $s_1$ y $s_2$ → cadenas de texto que se comparan. - $|s_1|$ y $|s_2|$ → longitudes de las cadenas. - $m$ → número de caracteres
+coincidentes entre las dos cadenas. - $t$ → número de trasposiciones, lo contrario a $m$
 
 2.  **Similitud de Jaro-Winkler**:
 
@@ -240,101 +347,104 @@ $$ S_{jw} =S_{j} + \ell \cdot p \cdot (1 - S_j) $$
 
 Donde:
 
-1.  $S_{j}$: Similitud de Jaro.
-2.  $\ell$: Longitud del prefijo común al inicio de las cadenas (máximo 4 caracteres).
-3.  $p$: Escalador de peso para el prefijo (normalmente $p = 0.1$).
+1.  $S_{j}$ → Similitud de Jaro.
+2.  $\ell$ → Longitud del prefijo común al inicio de las cadenas (máximo 4 caracteres).
+3.  $p$ → Escalador de peso para el prefijo (normalmente $p = 0.1$).
 
-Esta fórmula combina la similitud de Jaro y un ajuste adicional premiando las coincidencias de los primeros caracteres.
+El resultado de $S_{jw}$ es un valor entre 0 y 1, donde 1 indica una similitud perfecta y 0 indica ninguna similitud.
 
---------------------------------------------------------------------------------------------------------------------------------------------
+##### Ejemplo
 
-**Ejemplo 1: "Corea" y "Korea"**
+**¿Que palabra es más cercana a "Corea": "Korea" o "Correa"?**
 
-**Cálculo de** $S_j$:
+1.  Cálculo de $S_j$:
 
-1.  **Coincidencias (**$m$): Los caracteres coincidentes son: $o, r, e, a$ (4 caracteres).
-2.  **Longitud de las cadenas (**$|s_1|, |s_2|$): Ambas tienen longitud 5.
-3.  **Transposiciones (**$t$): Hay una transposición entre $C$ y $K$. Esto equivale a $t = 1/2 = 0.5$.
+    1.  Coincidencias ($m$): Los caracteres coincidentes son: $o, r, e, a$ (4 caracteres).
+
+    2.  Longitud de las cadenas ($|s_1|, |s_2|$): Ambas tienen longitud 5.
+
+    3.  Transposiciones ($t$): Hay una transposición entre $C$ y $K$. Esto equivale a $t = 1/2 = 0.5$.
 
 Sustituyendo en la fórmula de $S_j$:
 $$ S_j = \frac{1}{3} \left( \frac{4}{5} + \frac{4}{5} + \frac{4 - 0.5}{4} \right) = \frac{1}{3} \left( 0.8 + 0.8 + 0.875 \right) = 0.825 $$
 
-**Cálculo de** $S_{jw}$:
+2.  **Cálculo de** $S_{jw}$:
 
-1.  **Prefijo común (**$\ell$): El prefijo común es vacío ($\ell = 0$).
-2.  **Factor de prefijo (**$p$): $p = 0.1$.
+    1.  Prefijo común ($\ell$): El prefijo común es vacío ($\ell = 0$).
+
+    2.  Factor de prefijo ($p$): $p = 0.1$.
 
 $$ S_{jw} = S_j + \ell \cdot p \cdot (1 - S_j) = 0.825 + 0 \cdot 0.1 \cdot (1 - 0.825) = 0.825 $$
 
---------------------------------------------------------------------------------------------------------------------------------------------
-
-**Ejemplo 2: "Corea" y "Correa"**
-
-**Cálculo de** $S_j$:
-
-1.  **Coincidencias (**$m$): Los caracteres coincidentes son: $C, o, r, e, a$ (5 caracteres).
-2.  **Longitud de las cadenas (**$|s_1|, |s_2|$): Las longitudes son 5 y 6.
-3.  **Transposiciones (**$t$): Hay 1 transposición por el carácter extra $r$. Esto equivale a $t = 1/2 = 0.5$.
-
-Sustituyendo en la fórmula de $S_j$:
-$$ S_j = \frac{1}{3} \left( \frac{5}{5} + \frac{5}{6} + \frac{5 - 0.5}{5} \right) = \frac{1}{3} \left( 1 + 0.833 + 0.9 \right) = 0.911 $$
-
-**Cálculo de** $S_{jw}$:
-
-1.  **Prefijo común (**$\ell$): El prefijo común es $C, o, r$ ($\ell = 3$).
-2.  **Factor de prefijo (**$p$): $p = 0.1$.
-
-$$ S_{jw} = S_j + \ell \cdot p \cdot (1 - S_j) = 0.911 + 3 \cdot 0.1 \cdot (1 - 0.911) $$
-
-Resolviendo: $$ S_{jw} = 0.911 + 0.3 \cdot 0.089 = 0.911 + 0.027 = 0.938 $$
-
---------------------------------------------------------------------------------------------------------------------------------------------
-
-**Resultados:**
-
--   "Corea" y "Korea": $S_{jw} = 0.825$.
--   "Corea" y "Correa": $S_{jw} = 0.938$.
-
-Se puede observar que a pesar de que "Correa" tiene más caracteres al no necesitar transposiciones obtiene un mayor porcentaje de similitud.
-En este caso concreto, el algoritmo Jaro-Winkler **no** seria capaz de identificar correctamente cual de las dos palabras también da nombre
-al país.
-
-### Unir los Datos del FMI con el CPI {#unir-datos-cpi}
-
 ```{r message=FALSE, warning=FALSE}
-
-# Cambio el nombre del pais de "Korea, Republic of" a "Korea (South)"
-
-fmi$pais <- ifelse(fmi$pais == "Korea, Republic of", "Korea (South)", fmi$pais)
-
 # Calcula la distancia de similitud entre los nombres de los países
 distancias <- stringdistmatrix(fmi$pais, cpi$pais, method = "jw")
+```
 
-# Encuentra los nombres más cercanos
+Obtener los índices de los string más similares.\
+*Nota: El resultado que devuelve R es 1 -* $S_{jw}$, por eso se selecciona el mínimo y no el máximo.
+
+```{r message=FALSE, warning=FALSE}
 indices <- apply(distancias, 1, which.min)
-similitudes <- apply(distancias, 1, min)
+```
+
+En base a los indices anteriores se obtienen los nombres equivalentes.
+
+```{r message=FALSE, warning=FALSE}
 nombres_equivalentes <- cpi$pais[indices]
+```
 
+En vez de seleccionar el indice, me quedo con el valor y lo paso a porcentaje.
+
+```{r message=FALSE, warning=FALSE}
 # Calcula el porcentaje de error estimado
-porcentaje_error <- similitudes * 100
+porcentaje_error <- apply(distancias, 1, min)
+porcentaje_error <- porcentaje_error * 100
+```
 
+Añado el porcentaje de error y los nombres equivalentes al df, luego muestro los países y sus equivalentes ordenados por porcentaje de
+error. En base a esta tabla se realizaron los cambios de nombres anteriores.
+
+```{r message=FALSE, warning=FALSE}
 # Añadir el porcentaje de error estimado al dataframe original
 fmi <- fmi %>%
   mutate(porcentaje_error = porcentaje_error,
-         pais = nombres_equivalentes)
+         nombre_eq = nombres_equivalentes)
+fmi %>% select(pais, nombre_eq, porcentaje_error) %>%  group_by(pais) %>% slice(1) %>% arrange(desc(porcentaje_error)) 
+```
 
-# Filtrar los datos con un porcentaje de error mayor al 27.5%
-fmi <- fmi %>% filter(porcentaje_error < 27.5)
+Elimino las filas con un porcentaje superior a 0.
 
-# Unir los datos de inflación y CPI con los datos del FMI
+```{r message=FALSE, warning=FALSE}
+fmi <- fmi %>% ungroup() %>% filter(porcentaje_error == 0)
+```
+
+Sustituyo los nombres por su equivalente y me quedo con las columnas de interés.
+
+```{r message=FALSE, warning=FALSE}
+fmi$pais <- fmi$nombre_eq
+fmi <- fmi %>% select(-nombre_eq, -porcentaje_error) %>% 
+  mutate(año = as.numeric(año))
+```
+
+Unir los Dataframe finales del CPI y FMI
+
+```{r message=FALSE, warning=FALSE}
 df <- cpi %>%
-  inner_join(fmi, by = c("pais", "año"))
+  full_join(fmi, by = c("pais", "año"))
 
-# Reordenar las columnas
-df <- df %>%
-      select(pais, año, cpi, inflacion, pib,  pib_per_capita, ingreso_fiscal) %>%
-      arrange(pais, año) 
+df <- df %>% arrange(pais, año) 
+```
 
+Elimino las filas que no tengan al menos 2 variables sin nulos, no se puede realizar una correlación con 1 sola variable.
+
+```{r message=FALSE, warning=FALSE}
+df <- df[rowSums(is.na(df)) < 4, ]
+```
+
+Muestro su resumen y los primeros registros.
+
+```{r message=FALSE, warning=FALSE}
 summary(df)
 head(df)
 ```
@@ -361,56 +471,74 @@ head(df)
     -   Tipo de dato: Numérico.
     -   Descripción: Representa el valor total de todos los bienes y servicios producidos en un país en un año determinado dividido por la
         población total del país.
-7.  **Crecimiento del PIB per Capita**:
-    -   Tipo de dato: Numérico.
-    -   Descripción: Representa el crecimiento del PIB per Capita en un año determinado.
-8.  **Ingresos_fiscales**:
+7.  **Ingresos_fiscales**:
     -   Tipo de dato: Numérico.
     -   Descripción: Representa la cantidad total de ingresos recaudados por el estado a través de impuestos, expresado en % del PIB. No
         tiene en cuenta el endeudamiento.
 
 ## Análisis Exploratorio de Datos {#eda}
 
-### Numero de Datos por año {#falta-de-datos}
+### Número de paises por año {#paises-por-año}
+
+Agrego los datos por año y creo el gráfico de barras.
 
 ```{r}
-# Contar el número de nulos por año
-df_año <- df %>% group_by(año) %>% summarise(n = n()) 
-df <- df %>% ungroup()
+# Pasar el dataframe a formato largo
+df_long <- df %>% 
+  select(-pais) %>%
+  pivot_longer(cols = -año, names_to = "variable", values_to = "valor") %>%
+  group_by(año, variable) %>%
+  summarize(n_nulos = sum(is.na(valor)), .groups = "drop")
 
-año_plot <-  ggplot(df_año, aes(x = año, y = n)) +
-  geom_bar(stat = "identity", fill = "#d2c0e8", color="#978aa7") +
-  labs(title = "Número de Datos por Año",
-       x = "Año",
-       y = "Número de Datos")
-año_plot <- ggplotly(año_plot)
-año_plot
+# Crear el gráfico con ggplot2
+nulos_año_plot <- ggplot(df_long, aes(x = año, y = n_nulos, fill = variable )) +
+  geom_bar(stat = "identity", width = 0.9, color="#aaa") +
+  facet_wrap(~variable, scales = "free") +
+  labs(
+    title = "Cantidad de Nulos por Año y Variable",
+    x = "Año",
+    y = "Cantidad de Nulos"
+  ) +
+  theme(legend.position = "none",
+        panel.spacing.x = unit(2, "lines"),
+        panel.spacing.y = unit(4, "lines"))
 
+ggplotly(nulos_año_plot)
 ```
-
 
 ### Visualización de los Datos en el tiempo {#visualizacion-de-los-datos}
 
+Se agrupan los datos por año y se calcula la media de todas las variables, mediana para el caso de la inflación debido a valores extremos.
+
 ```{r fig.height= 6}
-# Seleccionar las columnas de interés
-# Agrupar y calcular las medias por año
 df_avg <- df %>%
   group_by(año) %>%
   summarise(
     cpi = mean(cpi, na.rm = TRUE),
-    inflacion = mean(inflacion, na.rm = TRUE),
+    inflacion = median(inflacion, na.rm = TRUE),
     pib = mean(pib, na.rm = TRUE),
     pib_per_capita = mean(pib_per_capita, na.rm = TRUE),
     ingreso_fiscal = mean(ingreso_fiscal, na.rm = TRUE), 
     .groups = "drop"
   )
+```
 
-# Transformar a formato largo
-df_avg_valores_llaves <- df_avg %>%
+Se transforman los datos a formato largo para poder visualizarlos en un gráfico. Se quita la columna año y el nombre de las variables pasa a
+ser la columna "variable" y su contenido en "valor".
+
+```{r message=FALSE, warning=FALSE}
+df_avg_largo <- df_avg %>%
   pivot_longer(cols = -año, names_to = "variable", values_to = "valor")
 
+```
+
+Crea varios lineplots interactivos, uno para cada variable, representando cómo cambian a lo largo del tiempo. Cada línea tiene puntos
+conectados para mostrar los valores individuales. El gráfico se divide en paneles para comparar las tendencias entre diferentes variables,
+se aumenta el margen entre los gráficos para impedir que se solapen.
+
+```{r message=FALSE, warning=FALSE}
 # Crear el gráfico
-plot <- ggplot(df_avg_valores_llaves, aes(x = año, y = valor, color = variable)) +
+plot <- ggplot(df_avg_largo, aes(x = año, y = valor, color = variable)) +
   geom_line() +
   geom_point(size = 2) +
   facet_wrap(~variable, scales = "free") +
@@ -430,26 +558,36 @@ ggplotly(plot)
 
 ### Visualización de las distribuciones {#visualizacion-distribuciones}
 
-```{r, warning=FALSE, message=FALSE, fig.height= 6}
+Algunas variables tienen un pico muy acusado como distribución y las colas casi inexsistentes, por lo que se transforman a logaritmo base 2
+para poder apreciar mejor la distribución, concrertamente la inflación, PIB, PIB per capita e ingreso fiscal.
 
+```{r, warning=FALSE, message=FALSE, fig.height= 6}
 # Seleccionar las columnas de interés
 df_correlacion <- df %>% select(-pais, -año) %>%
                   mutate( inflacion = log2(inflacion),
                           pib = log2(pib),
                           pib_per_capita = log2(pib_per_capita),
-                          ingreso_fiscal = log2(ingreso_fiscal)
-                  ) 
+                          ingreso_fiscal = log2(ingreso_fiscal)) %>%
+                  mutate_all(~rescale(.))
+```
 
+Se transforman los datos a formato largo. En este caso no necesito ninguna columna adicional, por lo que utilizo la función gather que es
+más sencilla.
+
+```{r message=FALSE, warning=FALSE}
 # Transformar el DataFrame de formato ancho a formato largo
-df_correlacion_valores_llaves <- df_correlacion %>% gather(variable, valor)
+df_correlacion_largo <-  df_correlacion %>% gather(variable, valor)
+```
 
+Mismo sistema que en el gráfico anterior, se crea un gráfico pero de densidad para cada variable.
+
+```{r message=FALSE, warning=FALSE}
 # Crear un gráfico de densidad para cada variable
-plot <- ggplot(df_correlacion_valores_llaves, aes(x = valor, fill = variable)) +
+plot <- ggplot(df_correlacion_largo, aes(x = valor, fill = variable)) +
   geom_density() +
   facet_wrap(~variable, scales = "free") +
-  labs(title = "Distribución de las Variables Numéricas",
-       x = "",
-       y = "") +
+  labs(x = "",
+       y = "Densidad") +
   theme(legend.position = "none",
         panel.spacing.x = unit(1, "lines"),
         panel.spacing.y = unit(3, "lines"))
@@ -459,18 +597,103 @@ ggplotly(plot)
 
 ```
 
+### Visualización de la inflación vs el resto de variables {#visualizacion-scatter}
+
+Algunas variables tienen un pico muy acusado como distribución y las colas casi inexsistentes, por lo que se transforman a logaritmo base 2
+para poder apreciar mejor la distribución, concretamente la inflación, PIB, PIB per capita e ingreso fiscal.
+
+```{r message=FALSE, warning=FALSE}
+df_correlacion <- df %>% select(-pais, -año) %>%
+                         filter(inflacion < 75) %>%
+                         mutate(pib = rescale(log10(pib)),
+                                pib_per_capita = rescale(log10(pib_per_capita))) %>%
+                         mutate_all(~rescale(.))
+ 
+df_correlacion_largo <- df_correlacion %>%
+                        pivot_longer(cols = -inflacion, names_to = "variable", values_to = "valor")
+
+```
+
+Mismo sistema que en el gráfico anterior, se crea un gráfico pero de densidad para cada variable.
+
+```{r message=FALSE, warning=FALSE}
+plot <- ggplot(df_correlacion_largo, aes(x = inflacion, y = valor)) +
+  geom_bin2d(binwidth = c(0.015, 0.015)) +
+  scale_fill_gradient(low = "#ada1ff", high = "#df0000") +
+  labs(
+    x = "",
+    y = "") +
+  ylim(0, 1) +
+  xlim(0, 1) +
+  facet_wrap(~variable, scales = "free") +
+  labs(
+    title = "Scatterplot de Inflación vs Resto de Variables",
+    x = "",
+    y = "") +
+  theme(legend.position = "none",
+        panel.spacing.x = unit(2, "lines"),
+        panel.spacing.y = unit(4, "lines"))
+
+# Convertir a objeto plotly
+ggplotly(plot)
+
+```
+
+## Análisis de Correlación {#correlacion}
+
 ### Calculo de la matriz de correlación
 
+Quito las columnas de país y año para calcular la matriz de correlación.
+
 ```{r Matriz de Correlación, warning=FALSE}
-
 df_correlacion <- df %>% select(-pais, -año)
+```
 
+Meto el número de columnas en una variable para crear matrices vacías
+
+```{r message=FALSE, warning=FALSE}
 # Crear matrices vacías para almacenar p-valores más bajos, métodos y coeficientes de correlación
 n <- ncol(df_correlacion)
-metodos <- c("pearson", "spearman")
+```
+
+Array con los dos posibles métodos de correlación.
+
+```{r message=FALSE, warning=FALSE}
+metodos <- c("spearman", "pearson")
+```
+
+Creo dos matrices vacías, una para los p-valores y otra para los coeficientes de correlación.
+
+```{r message=FALSE, warning=FALSE}
 p_metodo <- matrix(" ", n, n, dimnames = list(names(df_correlacion), names(df_correlacion)))
 cor_matrix <- matrix(1, n, n, dimnames = list(names(df_correlacion), names(df_correlacion)))
+```
 
+Comparo en cada par que método tiene el p-valor más bajo para seleccionarlo y calcular el coeficiente de correlación.
+
+**Pasos:**
+
+1.  Creo dos bucles que recorren las variables formando los pares de variables.
+
+2.  Asignar los nombres de las variables correspondientes a través de su posición en el array con los nombres de las variables.
+
+3.  Calcula los p-valores para la prueba de correlación entre las dos variables utilizando tanto el método de Pearson como el de Spearman.
+    El resultado es un array con 2 p-valores.
+
+4.  Selecciona el método con el p-valor más bajo.
+
+5.  Almacena ese p-valor.
+
+6.  Calcula la correlación con el método elegido.
+
+7.  Almacena los resultados en 2 matrices cuyos indices son el nombre de las variables:
+
+    1.  En la primera matriz almacena en la primera mitad elegido en el par y en la segunda mitad el p-valor redondeado conservando la
+        notación científica.
+
+    2.  En la segunda se almacenan en las dos mitades lo mismo, los coeficientes de correlación.
+
+```{r message=FALSE, warning=FALSE}
 # Iterar sobre las combinaciones de pares de columnas
 for (j in 1:(n-1)) {
   for (k in (j+1):n) {
@@ -493,22 +716,33 @@ for (j in 1:(n-1)) {
     cor_matrix[var2, var1] <- correlacion
   }
 }
-cor_matrix
 ```
 
 ### Visualización de la matriz de p-valores y métodos
 
-```{r}
-# Convertir la matriz de métodos en un dataframe adecuado para ggplot
-p_metodo_df <- melt(p_metodo, varnames = c("Variable1", "Variable2"), value.name = "Valor")
+Almaceno el nombre de las variables en 2 columnas y en otra tercera su valor (método o p-valor)
 
+```{r}
+p_metodo_df <- melt(p_metodo, varnames = c("Variable1", "Variable2"), value.name = "Valor")
+```
+
+El gráfico es una matriz de colores donde cada celda representa el p-valor correspondiente al test de correlación entre 2 variables y el
+método utilizado.
+
+Al introducir los métodos la escala de colores es discreta, lo que implica que tendría que asignarle un color a cada p-valor, dado todos los
+p-valores están muy por debajo de 0.05 asigno como color por defecto el verde clarito.
+
+Las celdas intermedias no aportan información, he introducido como valor un espacio para poder pintarlas de un color que llame menos la
+atención que los de su alrededor, en este caso gris.
+
+```{r message=FALSE, warning=FALSE}
 # Crear la visualización
 method_plot <- ggplot(data = p_metodo_df, aes(x = Variable1, y = Variable2, fill = Valor)) + 
   geom_tile(color = "black") +  
   geom_text(aes(label = Valor), 
             size = 4, 
             color = "black") + 
-  scale_fill_manual(values = c("pearson" = "#e033ff", "spearman" = "#fdaf7a"," " = "#696969"),na.value = "#e0ffbf") +
+  scale_fill_manual(values = c("pearson" = "#e033ff", "spearman" = "#fdaf7a"," " = "#e9e9e9"),na.value = "#e0ffbf") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         axis.line = element_line(color = "black"),
         panel.background = element_rect(fill = "#f9f9f9", color = NA),  
@@ -519,32 +753,156 @@ method_plot <- ggplot(data = p_metodo_df, aes(x = Variable1, y = Variable2, fill
        y = "", 
        fill = "Método")
 
-
 method_plot <- ggplotly(method_plot) %>% 
                layout(autosize = TRUE, 
                      xaxis = list(autorange = TRUE))
-
 method_plot
 ```
 
 ### Visualización de la matriz de correlación
 
-```{r fig.height= 7, fig.width = 7}
+Creo un corrplot con la matriz de correlaciones generada en el bucle.
 
-corrplot <-ggcorrplot(cor_matrix, 
-           method = "circle",
-           type = "full",
-           lab = TRUE,
-           lab_size = 3, 
-           colors = c("#6400e4","white", "#e40000"), 
-           title = "       Matriz de Correlación") +
-  
+```{r fig.height = 9, fig.width = 12, message=FALSE, warning=FALSE}
+
+corrplot <- ggcorrplot(cor_matrix, 
+                       method = "circle",
+                       type = "full",
+                       lab = TRUE,
+                       lab_size = 5) +
+  scale_fill_gradient2(high ="#6400e4",mid="#f9e9e9",low = "#ff0000") +
+  scale_size_continuous(range = c(8, 25)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.background = element_rect(fill = "#f9f9f9", color = NA),  
-    plot.background = element_rect(fill = "#f9f9f9", color = NA),   
-    axis.title = element_text(size = 3),
-    axis.text = element_text(size = 1))
+        panel.background = element_rect(fill = "#f9f9f9", color = NA),  
+        plot.background = element_rect(fill = "#f9f9f9", color = NA),   
+        axis.text = element_text(size = 2),
+        legend.position = "none")
 
-ggsave("corrplot.png", plot = corrplot, width = 5, height = 3.75, dpi = 400)
-knitr::include_graphics("corrplot.png")
+ggplotly(corrplot)
+```
+
+## Random Forest {#modelado}
+
+```{r}
+df_limpio <- df %>% select(-pais, -año) %>% 
+                    drop_na() %>%
+                    filter(inflacion < quantile(inflacion, 0.9))
+```
+
+```{r}
+# Dividir df_limpio en train y test
+set.seed(2706)
+
+train_index <- createDataPartition(1:nrow(df_limpio), p = .8, list = FALSE)
+
+df_train <- df_limpio[train_index, ]
+df_test <- df_limpio[-train_index, ]
+
+# Contar valores
+cat("Número de observaciones en el conjunto de entrenamiento:", nrow(df_train), "\n")
+cat("Número de observaciones en el conjunto de prueba:", nrow(df_test), "\n")
+# Resumen de los conjuntos de entrenamiento y prueba
+summary(df_train)
+summary(df_test)
+```
+
+```{r}
+# Ajuste manual del número óptimo de árboles (ntree)
+df_rmse <- data.frame(ntree = integer(), rmse = numeric())
+ntree_values <- seq(5, 100, by = 1)
+```
+
+```{r}
+for (nt in ntree_values) {
+  rf_model_temp <- randomForest(inflacion ~ ingreso_fiscal + pib + pib_per_capita + cpi, 
+                                data = df_train, 
+                                ntree = nt,
+                                mtry = 3)
+  
+  pred_temp <- predict(rf_model_temp, df_test)
+  rmse_temp <- sqrt(mean((df_test$inflacion - pred_temp)^2))
+ 
+  # Guardar el RMSE
+  df_rmse <- rbind(df_rmse, data.frame(ntree = nt, rmse = rmse_temp))
+}
+head(df_rmse %>% arrange(rmse))
+```
+
+```{r}
+# Gráfico de MSE vs ntree
+plot <- ggplot(df_rmse, aes(x = ntree, y = rmse)) +
+        geom_line(color = "#4400a4") +
+        geom_point(color = "#4400a4", size=0.6) +
+        geom_area(fill = "#4400a4", alpha = 0.2) +
+        labs(title = "RMSE vs Número de Árboles",
+             x = "Número de Árboles",
+             y = "RMSE") 
+       
+ggplotly(plot) 
+
+```
+
+```{r}
+# Obtener el ntree con el menor RMSE
+arboles_optimos <- 35
+cat("Número óptimo de árboles:", arboles_optimos, "\n")
+
+# Ajustar el modelo con el número óptimo de árboles
+rf_model_opt <- randomForest(inflacion ~ ingreso_fiscal + pib + pib_per_capita + cpi, 
+                             data = df_train, 
+                             ntree = arboles_optimos,
+                             mtry = 3)
+# Resumen del modelo
+print(rf_model_opt)
+```
+
+```{r}
+
+# Importancia de las variables usando IncNodePurity
+importancia <- importance(rf_model_opt)
+importancia_df <- data.frame(Variable = rownames(importancia), 
+                             Importancia = importancia[, "IncNodePurity"])
+
+# Ordena las variables por importancia
+importancia_df <- importancia_df[order(importancia_df$Importancia, decreasing = TRUE),]
+
+plot <- ggplot(importancia_df, aes(x = reorder(Variable, Importancia), y = Importancia)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  labs(title = "Importancia de las Variables",
+       x = "",
+       y = "Incremento en Pureza del Nodo") 
+
+ggplotly(plot)
+```
+
+```{r}
+# Predecir la inflación en el conjunto de prueba
+predicciones_opt <- predict(rf_model_opt, df_test)
+```
+
+```{r}
+# Evaluar el rendimiento del modelo optimizado (ejemplo con RMSE)
+rmse_opt <-sqrt(mean((df_test$inflacion - predicciones_opt)^2))
+
+cat("RMSE del modelo optimizado:", rmse_opt, "\n")
+
+```
+
+```{r}
+# Crear un gráfico de dispersión de los valores reales vs. las predicciones
+
+df_pred <- data.frame(Real = df_test$inflacion, Predicción = predicciones_opt)
+
+plot <- ggplot(df_pred, aes(x = Real, y = Predicción)) +
+  geom_point(color = "#4400a4") +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  ylim(0, max(df_pred$Real)) +
+  xlim(0, max(df_pred$Real)) +
+  labs(title = "Valores Reales vs. Predicciones",
+       x = "Real",
+       y = "Predicción")
+
+ggplotly(plot) 
+
 ```
