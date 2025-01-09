@@ -1,9 +1,9 @@
 body{
   background-color: #f9f9f9;
+  overflow-x: hidden;
 }
 div.main-container {
-  max-width: 1620px !important;
-  margin: 0 auto;
+  max-width: 1520px !important;
 }
 
 .scroll { 
