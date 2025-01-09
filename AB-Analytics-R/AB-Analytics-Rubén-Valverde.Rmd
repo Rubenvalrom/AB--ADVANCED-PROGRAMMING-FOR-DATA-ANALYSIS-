@@ -55,6 +55,7 @@ library(corrplot)
 library(stringdist)
 library(randomForest)
 library(caret)
+library(factoextra)
 ```
 
 ### Importación de Datos del FMI {#importacion-de-datos}
@@ -212,7 +213,7 @@ En total se tienen 18 archivos:
 Primero importo los datos del CPI de 2011 ya que es el año con más países de 1995 a 2011.
 
 ```{r message=FALSE, warning=FALSE}
-cpi <- read.csv("datasets/cpi/CPI-Archive-2011.csv")[c(1,4)] 
+cpi <- read.csv("datasets/cpi/CPI-Archive-2011.csv")[c(1,3,4)] 
 ```
 
 La idea es tener un año de referencia al que ir uniendo el resto de años hasta 1995, dado que 2011 es el año con más países, es más rápido
@@ -227,7 +228,7 @@ Conclusión: <button onclick="document.getElementById(&#39;audio&#39;).play()"> 
 </audio>
 
 ```{r}
-colnames(cpi) <- c("pais","score")
+colnames(cpi) <- c("pais","region","score")
 ```
 
 Este bucle une los datos de los años 2011 a 1995.\
@@ -246,19 +247,20 @@ Este bucle une los datos de los años 2011 a 1995.\
 for (año in 2010:1995) {
 
   # Importar los datos del CPI
-  cpi_año <- read.csv(paste0("datasets/cpi/CPI-Archive-",año,".csv"))[c(1,4)]
+  cpi_año <- read.csv(paste0("datasets/cpi/CPI-Archive-",año,".csv"))[c(1,3,4)]
   
   # Cambiar el nombre de la columna de país
   colnames(cpi_año)[1] <- "pais"
+  colnames(cpi_año)[2] <- "region"
   
   # Unir los datos del CPI
   cpi <- cpi %>%
-    left_join(cpi_año, by = "pais", suffix = c("", año))
+    left_join(cpi_año, by = c("pais","region"), suffix = c("", año))
 }
 ```
 
 ```{r message=FALSE, warning=FALSE}
-colnames(cpi)[2] <- "score2011"
+colnames(cpi)[3] <- "score2011"
 ```
 
 Convertir las columnas a numérico para evitar error al pivotar:
@@ -287,14 +289,14 @@ Importar los datos de 2012 a 2023.
 
 ```{r message=FALSE, warning=FALSE}
 # Importar el resto de años
-cpi_2012_2022 <- read_excel("datasets/cpi/CPI-Archive-2012-2023.xlsx")[c(1,3,5)] 
+cpi_2012_2022 <- read_excel("datasets/cpi/CPI-Archive-2012-2023.xlsx")[c(1,3,4,5)] 
 ```
 
 Cambiar el nombre de las columnas y pasar a numérico.
 
 ```{r message=FALSE, warning=FALSE}
 # Cambiar el nombre de las columnas
-colnames(cpi_2012_2022) <- c("pais","año", "cpi")
+colnames(cpi_2012_2022) <- c("pais","año","region","cpi")
 
 # Pasar a numérico
 cpi_2012_2022 <- cpi_2012_2022 %>% mutate(cpi = as.numeric(cpi),
@@ -306,6 +308,12 @@ Unir los datos del CPI verticalmente.
 ```{r message=FALSE, warning=FALSE}
 # Unir los datos del CPI verticalmente
 cpi <- rbind(cpi, cpi_2012_2022)
+```
+
+Convertir a factor las regiones
+
+```{r}
+cpi <- cpi %>% mutate(region = as.factor(region))
 ```
 
 ### Unir los Datos del FMI con el CPI {#unir-datos-cpi}
@@ -457,21 +465,24 @@ head(df)
 2.  **Año**:
     -   Tipo de dato: Numérico.
     -   Descripción: Año al que pertenecen los datos.
-3.  **Puntuación de Corrupción (CPI)**:
+3.  **Región**:
+    -   Tipo de dato: Carácter
+    -   Descripción: Área de tamaño continental donde se encuentra el país.
+4.  **Puntuación de Corrupción (CPI)**:
     -   Tipo de dato: Numérico.
     -   Descripción: Representa la percepción de corrupción en el sector público de un país en una escala de 0 a 100, donde 0 indica una
         alta percepción de corrupción y 100 indica una baja percepción de corrupción.
-4.  **Inflación**:
+5.  **Inflación**:
     -   Tipo de dato: Numérico.
     -   Descripción: Representa la perdida de poder adquisitivo de los ciudadanos.
-5.  **PIB:**
+6.  **PIB:**
     -   Tipo de dato: Numérico.
     -   Descripción: Representa el valor total de todos los bienes y servicios producidos en un país en un año determinado.
-6.  **PIB per Capita**:
+7.  **PIB per Capita**:
     -   Tipo de dato: Numérico.
     -   Descripción: Representa el valor total de todos los bienes y servicios producidos en un país en un año determinado dividido por la
         población total del país.
-7.  **Ingresos_fiscales**:
+8.  **Ingresos_fiscales**:
     -   Tipo de dato: Numérico.
     -   Descripción: Representa la cantidad total de ingresos recaudados por el estado a través de impuestos, expresado en % del PIB. No
         tiene en cuenta el endeudamiento.
@@ -485,7 +496,7 @@ Agrego los datos por año y creo el gráfico de barras.
 ```{r}
 # Pasar el dataframe a formato largo
 df_long <- df %>% 
-  select(-pais) %>%
+  select(-pais, -region) %>%
   pivot_longer(cols = -año, names_to = "variable", values_to = "valor") %>%
   group_by(año, variable) %>%
   summarize(n_nulos = sum(is.na(valor)), .groups = "drop")
@@ -563,7 +574,7 @@ para poder apreciar mejor la distribución, concrertamente la inflación, PIB, P
 
 ```{r, warning=FALSE, message=FALSE, fig.height= 6}
 # Seleccionar las columnas de interés
-df_correlacion <- df %>% select(-pais, -año) %>%
+df_correlacion <- df %>% select(-pais, -año, -region) %>%
                   mutate( inflacion = log2(inflacion),
                           pib = log2(pib),
                           pib_per_capita = log2(pib_per_capita),
@@ -603,7 +614,7 @@ Algunas variables tienen un pico muy acusado como distribución y las colas casi
 para poder apreciar mejor la distribución, concretamente la inflación, PIB, PIB per capita e ingreso fiscal.
 
 ```{r message=FALSE, warning=FALSE}
-df_correlacion <- df %>% select(-pais, -año) %>%
+df_correlacion <- df %>% select(-pais, -año, -region) %>%
                          filter(inflacion < 75) %>%
                          mutate(pib = rescale(log10(pib)),
                                 pib_per_capita = rescale(log10(pib_per_capita))) %>%
@@ -646,7 +657,7 @@ ggplotly(plot)
 Quito las columnas de país y año para calcular la matriz de correlación.
 
 ```{r Matriz de Correlación, warning=FALSE}
-df_correlacion <- df %>% select(-pais, -año)
+df_correlacion <- df %>% select(-pais, -año, -region)
 ```
 
 Meto el número de columnas en una variable para crear matrices vacías
@@ -785,8 +796,32 @@ ggplotly(corrplot)
 
 ```{r}
 df_limpio <- df %>% select(-pais, -año) %>% 
-                    drop_na() %>%
-                    filter(inflacion < quantile(inflacion, 0.9))
+                    drop_na() %>% 
+                    filter(inflacion < quantile(inflacion, .975))%>% 
+                    arrange(desc(inflacion))
+                    
+head(df_limpio)               
+```
+
+```{r}
+set.seed(2706)  
+
+df_limpio_rescalado <- df_limpio %>% select(-region) %>% scale()
+
+head(df_limpio_rescalado)
+
+fviz_nbclust(df_limpio_rescalado, kmeans, method = "wss") +
+  geom_vline(xintercept = 8, linetype = 2) +
+  labs(subtitle = "El método del codo")
+
+```
+
+```{r}
+kmeans_result <- kmeans(df_limpio_rescalado, centers = 8, nstart = 30)
+
+df_limpio$cluster <- kmeans_result$cluster
+
+head(df_limpio)
 ```
 
 ```{r}
@@ -809,15 +844,17 @@ summary(df_test)
 ```{r}
 # Ajuste manual del número óptimo de árboles (ntree)
 df_rmse <- data.frame(ntree = integer(), rmse = numeric())
-ntree_values <- seq(5, 100, by = 1)
+ntree_values <- seq(5, 150, by = 1)
 ```
 
 ```{r}
+set.seed(2706)
 for (nt in ntree_values) {
-  rf_model_temp <- randomForest(inflacion ~ ingreso_fiscal + pib + pib_per_capita + cpi, 
+  rf_model_temp <- randomForest(inflacion ~ ingreso_fiscal + pib + pib_per_capita + cpi + region + cluster, 
                                 data = df_train, 
                                 ntree = nt,
-                                mtry = 3)
+                                mtry = 2,
+                                nodesize = 5)
   
   pred_temp <- predict(rf_model_temp, df_test)
   rmse_temp <- sqrt(mean((df_test$inflacion - pred_temp)^2))
@@ -825,7 +862,8 @@ for (nt in ntree_values) {
   # Guardar el RMSE
   df_rmse <- rbind(df_rmse, data.frame(ntree = nt, rmse = rmse_temp))
 }
-head(df_rmse %>% arrange(rmse))
+df_rmse <- df_rmse %>% arrange(rmse)
+head(df_rmse, 5)
 ```
 
 ```{r}
@@ -834,6 +872,7 @@ plot <- ggplot(df_rmse, aes(x = ntree, y = rmse)) +
         geom_line(color = "#4400a4") +
         geom_point(color = "#4400a4", size=0.6) +
         geom_area(fill = "#4400a4", alpha = 0.2) +
+        coord_cartesian(ylim = c( min(df_rmse$rmse), max(df_rmse$rmse))) +
         labs(title = "RMSE vs Número de Árboles",
              x = "Número de Árboles",
              y = "RMSE") 
@@ -843,37 +882,21 @@ ggplotly(plot)
 ```
 
 ```{r}
-# Obtener el ntree con el menor RMSE
-arboles_optimos <- 35
+posibles_arboles <- df_rmse %>% head(5) %>% arrange(ntree)
+
+arboles_optimos <- posibles_arboles[1, "ntree"]
 cat("Número óptimo de árboles:", arboles_optimos, "\n")
 
+
+set.seed(2706)
 # Ajustar el modelo con el número óptimo de árboles
-rf_model_opt <- randomForest(inflacion ~ ingreso_fiscal + pib + pib_per_capita + cpi, 
+rf_model_opt <- randomForest(inflacion ~ ingreso_fiscal + pib + pib_per_capita + cpi + cluster + region, 
                              data = df_train, 
                              ntree = arboles_optimos,
-                             mtry = 3)
+                             mtry = 2,
+                             nodesize = 5)
 # Resumen del modelo
 print(rf_model_opt)
-```
-
-```{r}
-
-# Importancia de las variables usando IncNodePurity
-importancia <- importance(rf_model_opt)
-importancia_df <- data.frame(Variable = rownames(importancia), 
-                             Importancia = importancia[, "IncNodePurity"])
-
-# Ordena las variables por importancia
-importancia_df <- importancia_df[order(importancia_df$Importancia, decreasing = TRUE),]
-
-plot <- ggplot(importancia_df, aes(x = reorder(Variable, Importancia), y = Importancia)) +
-  geom_bar(stat = "identity", fill = "steelblue") +
-  coord_flip() +
-  labs(title = "Importancia de las Variables",
-       x = "",
-       y = "Incremento en Pureza del Nodo") 
-
-ggplotly(plot)
 ```
 
 ```{r}
@@ -892,17 +915,55 @@ cat("RMSE del modelo optimizado:", rmse_opt, "\n")
 ```{r}
 # Crear un gráfico de dispersión de los valores reales vs. las predicciones
 
-df_pred <- data.frame(Real = df_test$inflacion, Predicción = predicciones_opt)
+df_pred <- data.frame(real = df_test$inflacion, prediccion = predicciones_opt, error_porcentual = (df_test$inflacion - predicciones_opt) / df_test$inflacion * 100)
 
-plot <- ggplot(df_pred, aes(x = Real, y = Predicción)) +
+plot <- ggplot(df_pred, aes(x = real, y = prediccion)) +
   geom_point(color = "#4400a4") +
   geom_abline(intercept = 0, slope = 1, color = "red") +
-  ylim(0, max(df_pred$Real)) +
-  xlim(0, max(df_pred$Real)) +
+  ylim(0, max(df_pred$real)) +
+  xlim(0, max(df_pred$real)) +
   labs(title = "Valores Reales vs. Predicciones",
        x = "Real",
        y = "Predicción")
 
 ggplotly(plot) 
 
+```
+
+```{r}
+# Countplot error porcentual
+df_pred$error_porcentual <- round(df_pred$error_porcentual, 2)
+df_pred$error_porcentual <- ifelse(df_pred$error_porcentual < 0, df_pred$error_porcentual * -1, df_pred$error_porcentual)
+df_pred$error_porcentual <- ifelse(df_pred$error_porcentual > 200, 200, df_pred$error_porcentual)
+
+plot <- ggplot(df_pred, aes(x = error_porcentual)) +
+  geom_density(fill = "#4400a4", alpha= 0.8) +
+  labs(title = "Distribución del Error Porcentual",
+       x = "Error Porcentual",
+       y = "Frecuencia")
+
+ggplotly(plot)
+```
+
+```{r}
+
+# Importancia de las variables usando IncNodePurity
+importancia <- importance(rf_model_opt)
+importancia_df <- data.frame(variable = rownames(importancia), 
+                             importancia = importancia[, "IncNodePurity"])
+
+# Ordena las variables por importancia
+importancia_df <- importancia_df[order(importancia_df$importancia, decreasing = TRUE),]
+
+plot <- ggplot(importancia_df, aes(x = reorder(variable, importancia), y = importancia, fill=variable)) +
+  geom_bar(stat = "identity" ) +
+  coord_flip() +
+  scale_fill_manual(values = c("#339aff", "#184d80", "#1e63a7", "#133d66", "#297bcb","#0f3051")) +
+  labs(title = "Importancia de las Variables",
+       x = "",
+       y = "Incremento en Pureza del Nodo") +
+  theme(legend.position = "none") 
+
+plot <- ggplotly(plot) %>% layout(xaxis = list(range = c(0, 4500)))
+plot
 ```
