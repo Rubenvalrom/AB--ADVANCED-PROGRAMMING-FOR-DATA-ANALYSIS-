@@ -49,6 +49,7 @@ library(stringdist)
 library(randomForest)
 library(caret)
 library(factoextra)
+library(Rcpp)
 ```
 
 ### Importación de Datos del FMI {#importacion-de-datos}
@@ -905,12 +906,21 @@ ggplotly(plot)
 
 ```{r}
 # Countplot error porcentual
-df_pred$error_porcentual <- round(df_pred$error_porcentual, 2)
-df_pred$error_porcentual <- ifelse(df_pred$error_porcentual < 0, df_pred$error_porcentual * -1, df_pred$error_porcentual)
-df_pred$error_porcentual <- ifelse(df_pred$error_porcentual > 200, 200, df_pred$error_porcentual)
+#df_pred$error_porcentual <- round(df_pred$error_porcentual, 2)
+#df_pred$error_porcentual <- ifelse(df_pred$error_porcentual < 0, df_pred$error_porcentual * -1, df_pred$error_porcentual)
+#df_pred$error_porcentual <- ifelse(df_pred$error_porcentual > 200, 200, df_pred$error_porcentual)
 
+```
+
+```{r}
+sourceCpp("cpp/redondear_columna.cpp")
+
+df_pred$error_porcentual <- redondear_columna(df_pred$error_porcentual, 300)
+```
+
+```{r}
 plot <- ggplot(df_pred, aes(x = error_porcentual)) +
-  geom_density(fill = "#4400a4", alpha= 0.6) +
+  geom_histogram(fill = "#4400a4",bins = 50, alpha= 0.6) +
   labs(title = "Distribución del Error Porcentual",
        x = "Error Porcentual",
        y = "Frecuencia")
